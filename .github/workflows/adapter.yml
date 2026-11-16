@@ -1,0 +1,272 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reusable workflow: build, test and check one Skailify adapter against the
+# app-sdk versions it supports (the lowest in its peer range and npm latest).
+# The app-sdk ships in @skaile/workspaces, so the versions are that package's.
+# How to call it, and how to copy it into your own repository:
+# docs/ci-template.md.
+
+name: adapter
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Adapter folder, relative to the repository root (for example frontend/vue-tsm).
+        required: true
+        type: string
+      kind:
+        description: "`js` (bun test + runAppConformance) or `java` (wrapper build + skailify-check-mcp)."
+        required: true
+        type: string
+      app-sdk-range:
+        description: >-
+          Supported @skaile/workspaces range. Defaults to the adapter's
+          peerDependencies["@skaile/workspaces"]; a Java adapter must set it.
+        required: false
+        type: string
+        default: ""
+      java-version:
+        description: "Java only: JDK to build with."
+        required: false
+        type: string
+        default: "17"
+      java-build-command:
+        description: "Java only: build and test command. Default: `./gradlew build` or `./mvnw -B verify`, whichever wrapper the folder has."
+        required: false
+        type: string
+        default: ""
+      java-start-command:
+        description: "Java only: starts the MCP server in the foreground, run from the adapter folder."
+        required: false
+        type: string
+        default: ""
+      mcp-url:
+        description: "Java only: the started server's streamable HTTP MCP endpoint."
+        required: false
+        type: string
+        default: ""
+      bun-version:
+        description: "JS only: Bun version to install with."
+        required: false
+        type: string
+        default: "1.3.12"
+      mcp-ready-timeout:
+        description: "Java only: seconds to wait for the MCP endpoint to answer."
+        required: false
+        type: number
+        default: 120
+
+permissions:
+  contents: read
+
+jobs:
+  versions:
+    name: app-sdk versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      versions: ${{ steps.resolve.outputs.versions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The lowest published version in the range, and npm latest. Inline so
+      # the workflow is one file to copy.
+      - id: resolve
+        env:
+          ADAPTER_PATH: ${{ inputs.path }}
+          ADAPTER_KIND: ${{ inputs.kind }}
+          APP_SDK_RANGE: ${{ inputs.app-sdk-range }}
+        run: |
+          case "$ADAPTER_KIND" in
+            js | java) ;;
+            *) echo "::error::kind must be js or java, got '$ADAPTER_KIND'"; exit 1 ;;
+          esac
+          if [ ! -d "$ADAPTER_PATH" ]; then
+            echo "::error::adapter folder '$ADAPTER_PATH' does not exist"
+            exit 1
+          fi
+          node --input-type=module <<'SCRIPT'
+            import { execFileSync } from "node:child_process";
+            import { appendFileSync, existsSync, readFileSync } from "node:fs";
+            import { join } from "node:path";
+
+            const PACKAGE = "@skaile/workspaces";
+            // First version that ships runAppConformance and skailify-check-mcp.
+            const MIN_TESTABLE = "10.4.0";
+
+            function fail(message) {
+              console.error(`::error::${message}`);
+              process.exit(1);
+            }
+
+            function npmView(spec, field) {
+              const out = execFileSync("npm", ["view", spec, field, "--json"], { encoding: "utf8" }).trim();
+              if (out === "") return [];
+              const value = JSON.parse(out);
+              return Array.isArray(value) ? value : [value];
+            }
+
+            function compare(a, b) {
+              const pa = a.split(/[.-]/).slice(0, 3).map(Number);
+              const pb = b.split(/[.-]/).slice(0, 3).map(Number);
+              for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+              return 0;
+            }
+
+            const adapterPath = process.env.ADAPTER_PATH;
+            const rangeArg = process.env.APP_SDK_RANGE;
+
+            let range = rangeArg?.trim();
+            if (!range) {
+              const manifest = join(adapterPath, "package.json");
+              if (!existsSync(manifest)) fail(`${manifest} not found; pass the app-sdk range explicitly`);
+              range = JSON.parse(readFileSync(manifest, "utf8")).peerDependencies?.[PACKAGE];
+              if (!range) fail(`${manifest} has no peerDependencies["${PACKAGE}"]`);
+            }
+
+            const inRange = npmView(`${PACKAGE}@${range}`, "version").sort(compare);
+            if (inRange.length === 0) fail(`no published ${PACKAGE} version satisfies "${range}"`);
+            const lowest = inRange[0];
+            if (compare(lowest, MIN_TESTABLE) < 0) {
+              fail(
+                `the peer range "${range}" starts at ${lowest}, before ${MIN_TESTABLE}, the first version with the ` +
+                  `conformance kit; raise the range's floor to ${MIN_TESTABLE} or later`,
+              );
+            }
+
+            const [latest] = npmView(PACKAGE, "dist-tags.latest");
+            if (!latest) fail(`npm has no latest tag for ${PACKAGE}`);
+
+            const versions = [...new Set([lowest, latest])];
+            console.log(`app-sdk range "${range}": testing ${versions.join(", ")}`);
+            appendFileSync(process.env.GITHUB_OUTPUT, `versions=${JSON.stringify(versions)}\n`);
+          SCRIPT
+
+  js:
+    name: js (app-sdk ${{ matrix.app-sdk }})
+    if: inputs.kind == 'js'
+    needs: versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app-sdk: ${{ fromJSON(needs.versions.outputs.versions) }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.path }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ inputs.bun-version }}
+      - name: Install with @skaile/workspaces ${{ matrix.app-sdk }}
+        env:
+          APP_SDK_VERSION: ${{ matrix.app-sdk }}
+        run: |
+          bun install
+          bun add --dev --exact "@skaile/workspaces@$APP_SDK_VERSION"
+          # Fail rather than test a different version than the matrix names.
+          dir=$PWD
+          until [ -f "$dir/node_modules/@skaile/workspaces/package.json" ] || [ "$dir" = / ]; do
+            dir=$(dirname "$dir")
+          done
+          installed=$(jq -r .version "$dir/node_modules/@skaile/workspaces/package.json" 2>/dev/null || true)
+          if [ "$installed" != "$APP_SDK_VERSION" ]; then
+            echo "::error::expected @skaile/workspaces $APP_SDK_VERSION, resolved '${installed:-nothing}'"
+            exit 1
+          fi
+          echo "Testing against @skaile/workspaces $installed"
+      - name: Test
+        run: bun run test
+      - name: Conformance (runAppConformance)
+        run: |
+          if ! jq -e '.scripts.conformance' package.json > /dev/null; then
+            echo "::error::package.json has no \"conformance\" script; it must run the app-sdk's runAppConformance (see docs/ci-template.md)"
+            exit 1
+          fi
+          bun run conformance
+
+  java:
+    name: java (app-sdk ${{ matrix.app-sdk }})
+    if: inputs.kind == 'java'
+    needs: versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app-sdk: ${{ fromJSON(needs.versions.outputs.versions) }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.path }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Build and test with the folder's wrapper
+        env:
+          BUILD_COMMAND: ${{ inputs.java-build-command }}
+        run: |
+          if [ -n "$BUILD_COMMAND" ]; then
+            bash -c "$BUILD_COMMAND"
+          elif [ -x ./gradlew ]; then
+            ./gradlew build --no-daemon
+          elif [ -x ./mvnw ]; then
+            ./mvnw -B verify
+          else
+            echo "::error::no executable ./gradlew or ./mvnw in the adapter folder; commit the build wrapper"
+            exit 1
+          fi
+      - name: Start the server and run skailify-check-mcp
+        env:
+          START_COMMAND: ${{ inputs.java-start-command }}
+          MCP_URL: ${{ inputs.mcp-url }}
+          READY_TIMEOUT: ${{ inputs.mcp-ready-timeout }}
+          APP_SDK_VERSION: ${{ matrix.app-sdk }}
+        run: |
+          if [ -z "$START_COMMAND" ] || [ -z "$MCP_URL" ]; then
+            echo "::error::a java adapter needs java-start-command and mcp-url"
+            exit 1
+          fi
+          # Own process group, so the cleanup also stops a JVM the wrapper forked.
+          setsid bash -c "$START_COMMAND" > "$RUNNER_TEMP/server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill -- -"$server_pid" 2>/dev/null || true' EXIT
+
+          deadline=$((SECONDS + READY_TIMEOUT))
+          until curl -s -o /dev/null "$MCP_URL"; do
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "::error::the server exited before $MCP_URL answered"
+              cat "$RUNNER_TEMP/server.log"
+              exit 1
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::$MCP_URL did not answer within ${READY_TIMEOUT}s"
+              cat "$RUNNER_TEMP/server.log"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          status=0
+          npx --yes --package "@skaile/workspaces@$APP_SDK_VERSION" -- skailify-check-mcp "$MCP_URL" || status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- server log ---"
+            cat "$RUNNER_TEMP/server.log"
+          fi
+          exit "$status"
