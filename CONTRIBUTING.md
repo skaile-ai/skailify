@@ -68,6 +68,8 @@ take the licence of the folder they are in.
    so it builds with only a JDK 17 or later.
 4. Keep it app-agnostic: the app passes in what is specific to it.
 5. Add a row to the adapter table in the [root README](README.md).
+6. Add a job for it to `.github/workflows/ci.yml` that calls the reusable adapter workflow; see
+   [docs/ci-template.md](docs/ci-template.md). A JavaScript adapter needs a `conformance` script for it.
 
 ## Pull requests
 
