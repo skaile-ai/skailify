@@ -51,10 +51,3 @@ jobs:
     with:
       path: frontend/_example
       kind: js
-
-  example-broken:
-    name: example adapter (deliberately broken, temporary)
-    uses: ./.github/workflows/adapter.yml
-    with:
-      path: frontend/_example-broken
-      kind: js
