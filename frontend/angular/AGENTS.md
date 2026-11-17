@@ -55,17 +55,11 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 npm install @skaile/skailify-angular @skaile/workspaces zod
 ```
 
-The package is not on npm yet. Until it is, pack it from a checkout of this repository and install
-the tarball, so the app keeps a single copy of Angular, zod and the app SDK:
-
-```sh
-cd <checkout>/frontend/angular && npm pack   # writes skaile-skailify-angular-<version>.tgz
-cd <app> && npm install <checkout>/frontend/angular/skaile-skailify-angular-<version>.tgz @skaile/workspaces zod
-```
-
-Do not install it by path (`npm install <checkout>/frontend/angular`). That links the folder, and the
-build may then load a second `@angular/core` from the checkout's `node_modules`, which breaks
-injection (`NG0203` or "no provider for InjectionToken skailify").
+Angular, zod and the app SDK are peer dependencies, so the app keeps a single copy of each. To try an
+unreleased change, install a packed tarball (`npm pack` in `frontend/angular` of a checkout of this
+repository), never the folder by path: a path install links the folder, and the build may then load a
+second `@angular/core` from the checkout's `node_modules`, which breaks injection (`NG0203` or "no
+provider for InjectionToken skailify").
 
 The package ships TypeScript. If the Angular CLI refuses to compile it ("is missing from the
 TypeScript compilation"), add `"node_modules/@skaile/skailify-angular/src/**/*.ts"` to `include` in

@@ -12,6 +12,10 @@ It connects only when the app is embedded in Skaile as a preview app with the ap
 on (`"protocol": true`): an iframe whose URL carries `skaileParentOrigin`. Opened on its own, the app
 does not connect, and the registrations cost next to nothing.
 
+```sh
+npm install @skaile/skailify-angular @skaile/workspaces zod
+```
+
 | Entry point | For |
 |---|---|
 | `@skaile/skailify-angular` | `provideSkailify`, `injectAgentView`, `injectAgentState`, `injectAgentAction`, the status, activity and capabilities signals |

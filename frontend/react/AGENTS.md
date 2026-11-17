@@ -52,16 +52,10 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 npm install @skaile/skailify-react @skaile/workspaces zod
 ```
 
-The package is not on npm yet. Until it is, pack it from a checkout of this repository and install
-the tarball, so the app keeps a single copy of React, zod and the app SDK:
-
-```sh
-cd <checkout>/frontend/react && npm pack     # writes skaile-skailify-react-<version>.tgz
-cd <app> && npm install <checkout>/frontend/react/skaile-skailify-react-<version>.tgz @skaile/workspaces zod
-```
-
-Do not install it by path (`npm install <checkout>/frontend/react`): that links the folder, and the
-bundler may then load a second React from the checkout's `node_modules` ("Invalid hook call").
+React, zod and the app SDK are peer dependencies, so the app keeps a single copy of each. To try an
+unreleased change, install a packed tarball (`npm pack` in `frontend/react` of a checkout of this
+repository), never the folder by path: a path install links the folder, and the bundler may then load
+a second React from the checkout's `node_modules` ("Invalid hook call").
 
 Install the adapter once, in the app's own `package.json`. Two copies (for example one in a shared
 UI library and one in the app) mean two contexts: the hooks of one copy do not see the provider of the

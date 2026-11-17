@@ -4,7 +4,8 @@
 # Checks that every tracked file that can hold a comment carries an SPDX
 # licence identifier in its first lines: EPL-2.0 under backend/emf-mcp/,
 # Apache-2.0 everywhere else. Files that cannot hold a comment (JSON,
-# lockfiles, LICENSE, NOTICE) and build wrappers are skipped.
+# lockfiles, LICENSE, NOTICE), build wrappers, changesets and the changelogs
+# Changesets writes from them are skipped.
 #
 #   check-spdx.sh            check every tracked file
 #   check-spdx.sh <files…>   check only these files
@@ -36,6 +37,7 @@ for file in "${files[@]}"; do
   checked_extension "$file" || continue
   case "$file" in
     */gradle/wrapper/* | */.mvn/wrapper/*) continue ;;
+    .changeset/*.md | CHANGELOG.md | */CHANGELOG.md) continue ;;
   esac
 
   expected="Apache-2.0"
