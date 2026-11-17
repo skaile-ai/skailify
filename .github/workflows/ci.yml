@@ -45,6 +45,13 @@ jobs:
           persist-credentials: false
       - run: .github/scripts/check-spdx.sh
 
+  vue-tsm:
+    name: vue-tsm adapter
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: frontend/vue-tsm
+      kind: js
+
   example:
     name: example adapter
     uses: ./.github/workflows/adapter.yml
