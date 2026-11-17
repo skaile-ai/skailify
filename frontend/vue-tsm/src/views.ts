@@ -5,7 +5,6 @@
  * registry; how a view service is read (its service id, which property is the
  * path, …) is configuration, so any tsm app can plug its own contract in.
  */
-import type { ModuleContext, ServiceReference } from '@eclipse-daanse/tsm'
 
 export interface ViewDescriptor {
   /** The view's id, which is also its path: `orders` is shown under `/orders` */
@@ -34,14 +33,31 @@ export interface TsmViewContract {
   title?: (service: unknown) => string
 }
 
+/** A service reference, as tsm's `ServiceReference` has it (only what {@link tsmViewSource} reads). */
+export interface TsmServiceReference {
+  readonly properties: Readonly<Record<string, unknown>>
+}
+
+/**
+ * The part of a tsm `ModuleContext` that {@link tsmViewSource} uses. A tsm `ModuleContext` fits it.
+ * Declared here rather than imported, so the published types do not need the optional
+ * `@eclipse-daanse/tsm` peer installed.
+ */
+export interface TsmModuleContext {
+  readonly services: {
+    getServiceReferences(id: string): TsmServiceReference[]
+    resolveReference(reference: TsmServiceReference): unknown
+  }
+}
+
 /** A view source over the services registered under `serviceId` in the tsm registry. */
-export function tsmViewSource(context: ModuleContext, serviceId: string, contract: TsmViewContract = {}): ViewSource {
+export function tsmViewSource(context: TsmModuleContext, serviceId: string, contract: TsmViewContract = {}): ViewSource {
   const path = contract.pathProperty ?? 'view'
   const order = contract.orderProperty ?? 'order'
   const menu = contract.menuProperty ?? 'menu'
   const types = contract.objectTypesProperty ?? 'objectTypes'
   const title = contract.title ?? ((service: unknown) => String((service as { title?: unknown })?.title ?? ''))
-  const sortKey = (reference: ServiceReference) => Number(reference.properties[order] ?? 0)
+  const sortKey = (reference: TsmServiceReference) => Number(reference.properties[order] ?? 0)
   return () =>
     context.services
       .getServiceReferences(serviceId)

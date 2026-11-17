@@ -47,4 +47,4 @@ Placeholder. Install the latest version: \`npm install $name@latest\`.
 EOF
 
 echo "Publishing $name@0.0.0 (placeholder, dist-tag bootstrap)"
-(cd "$dir" && npm publish --access public --tag bootstrap --provenance=false "${dry_run[@]}")
+(cd "$dir" && npm publish --access public --tag bootstrap --provenance=false ${dry_run[@]+"${dry_run[@]}"})

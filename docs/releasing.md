@@ -37,6 +37,11 @@ or `tsdown.config.ts` without a changeset. For a change that needs no release, a
    package whose version is not on npm yet, tags it (`@skaile/skailify-react@0.2.0`) and creates a
    GitHub Release.
 
+Empty changesets on their own release nothing: while every changeset on `main` is empty, the
+workflow neither opens the pull request nor publishes. They wait for the next real changeset, and
+they also block step 2, so a failed publish can be retried only once no changesets are left on
+`main`.
+
 A pull request opened by the workflow does not trigger CI itself. The changes it carries already
 passed CI when they landed. The DCO check skips it: its commit is the bot's, and it only applies the
 changesets that were signed off when they landed.
@@ -66,8 +71,12 @@ To publish a new adapter:
    copy the root `LICENSE` into the folder. A backend adapter that runs on Node sets
    `platform: "node"` in its `tsdown.config.ts`.
 3. Run `bun run check:package` in the folder, and check what `npm pack --dry-run` lists.
-4. Add a changeset. The first published version is the one in `package.json` (`0.1.0`).
-5. Before the release pull request is merged, a maintainer with publish rights on the `@skaile` npm
+4. Do not add a changeset for the first release, not even an empty one. The first published version
+   is the one in `package.json` (`0.1.0`); the `Changeset` check knows a version that is not on npm
+   yet needs none. When the pull request is merged with no changesets pending on `main`, the
+   workflow publishes it straight away; with changesets pending, it goes out with the next version
+   pull request.
+5. Before that merge, a maintainer with publish rights on the `@skaile` npm
    scope bootstraps the package once (below). npm accepts trusted publishing only for a package
    that already exists, so the very first version cannot come from the workflow.
 
@@ -79,8 +88,11 @@ This needs an npm account with publish rights on `@skaile` and two-factor authen
 
    ```sh
    npm login
-   ../../.github/scripts/publish-placeholder.sh
+   npm_config_otp=<6-digit code> bash ../../.github/scripts/publish-placeholder.sh
    ```
+
+   npm asks for a two-factor code on every publish; `npm_config_otp` passes it in. Codes last about
+   30 seconds, so take a fresh one for each package.
 
    It publishes version `0.0.0` of the package with only a package.json and a README, under the
    `bootstrap` dist-tag (`--dry-run` shows it without publishing). npm points `latest` at a new
@@ -96,7 +108,7 @@ This needs an npm account with publish rights on `@skaile` and two-factor authen
      configuration created after 3 September 2026 allows only `npm stage publish` by default).
 
    npm does not check these values when you save them, so check them by eye.
-3. Merge the release pull request **within two days**. A trusted publisher configuration that has
+3. Merge the pull request that publishes (step 4 above) **within two days**. A trusted publisher configuration that has
    not published within two days expires and must be deleted and created again.
 4. Once the real version is out, deprecate the placeholder:
    `npm deprecate @skaile/skailify-<name>@0.0.0 "placeholder, use the latest version"`.

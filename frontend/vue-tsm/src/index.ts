@@ -25,7 +25,7 @@ export { skaileParentOrigin, type ConnectionStatus, type SkailifyHandle, type Sk
 export { defaultLabel, idOf, missingRequired, readFields, setFields, widgetsOf, type FieldError, type FieldInfo, type Labeler, type ReferenceResolver, type SetFieldsResult, type ValueWriter } from './forms.js'
 export { audit, effectClassRefusal, EFFECT_CLASSES, type EffectClass, type SkailifyContext, type TurnPrincipal } from './platform.js'
 export { AgentRegistry, registry, type AgentAction, type FormRegistration, type ListRegistration, type SubmitOutcome } from './registry.js'
-export { tsmViewSource, type TsmViewContract, type ViewDescriptor, type ViewSource } from './views.js'
+export { tsmViewSource, type TsmModuleContext, type TsmServiceReference, type TsmViewContract, type ViewDescriptor, type ViewSource } from './views.js'
 
 let current: SkailifyHandle | null = null
 
