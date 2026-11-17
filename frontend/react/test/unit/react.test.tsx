@@ -149,3 +149,50 @@ test("unmounting removes the actions from the agent's catalog and the view falls
   await gateway.waitFor((g) => !g.capabilities.has("app.detail.open") && !g.capabilities.has("app.detail.close"));
   await gateway.waitFor((g) => g.view.report?.viewId === "kanban");
 });
+
+function Outer() {
+  useAgentView({ id: "board" });
+  return <Inner />;
+}
+
+function Inner() {
+  useAgentView({ id: "card/7", title: "Card 7" });
+  return <p>card</p>;
+}
+
+test("a view and the view it contains, mounted together, report the inner one", async () => {
+  const { gateway, client } = await mount(<Outer />);
+  await gateway.waitFor((g) => g.view.report?.viewId === "card/7");
+  expect(client.currentView()?.id).toBe("card/7");
+});
+
+function Described({ text }: { text: string }) {
+  useAgentAction({ name: "x.do", description: text, input: z.object({}), kind: "query", handler: async () => text });
+  return null;
+}
+
+test("a changed declaration registers the action again", async () => {
+  const { gateway } = await mount(<Described text="first" />);
+  await gateway.waitFor((g) => g.capabilities.get("app.x.do")?.description === "first");
+  const c = client!;
+  root!.render(
+    <StrictMode>
+      <SkailifyProvider client={c}>
+        <Described text="second" />
+      </SkailifyProvider>
+    </StrictMode>,
+  );
+  await gateway.waitFor((g) => g.capabilities.get("app.x.do")?.description === "second");
+  expect(await gateway.invoke("app.x.do")).toBe("second");
+});
+
+function Unserialisable() {
+  useAgentView({ id: "v", state: { big: 1n } });
+  return <p>still rendered</p>;
+}
+
+test("view state that is not JSON-serialisable does not break rendering", async () => {
+  const { container } = await mount(<Unserialisable />);
+  await new Promise((r) => setTimeout(r, 20));
+  expect(container.textContent).toBe("still rendered");
+});

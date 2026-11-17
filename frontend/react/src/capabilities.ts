@@ -6,7 +6,7 @@
  * router-agnostic: the app says what its views are and how to show one.
  */
 import * as z from "zod";
-import { type AgentAction, agentAction, type Skailify } from "./client.ts";
+import { type AgentAction, agentAction, SETTLES_ITSELF, type Skailify } from "./client.ts";
 
 /** A view (page, screen) of the app, as the agent sees it in `list_views`. */
 export interface ViewDescriptor {
@@ -34,7 +34,7 @@ export interface ViewState {
   view: { id: string; title?: string; state?: unknown } | null;
   /** What the mounted components expose with `useAgentState`, by name */
   state: Record<string, unknown>;
-  /** The actions available now, by full name */
+  /** The actions available now, by the name the agent calls them (`app.<appId>.<name>`) */
   actions: string[];
   /** false when a view was still loading when the wait timed out: read again */
   settled: boolean;
@@ -45,7 +45,7 @@ export function viewState(client: Skailify, settled: boolean): ViewState {
   return {
     view: view ? { id: view.id, title: view.title, state: view.state } : null,
     state: client.readState(),
-    actions: client.getSnapshot().capabilities.map((c) => c.name),
+    actions: client.getSnapshot().capabilities.map((c) => c.agentName),
     settled: settled && !client.loading(),
   };
 }
@@ -54,7 +54,7 @@ const settledNote =
   "When settled is false a view was still loading when the wait timed out: the state may be incomplete, so read it again with get_view_state.";
 
 export function genericCapabilities(client: Skailify, navigation: Navigation | undefined): AgentAction[] {
-  const name = client.fullName;
+  const name = client.agentName;
   const generic: AgentAction[] = [
     agentAction({
       name: "get_view_state",
@@ -83,7 +83,9 @@ export function genericCapabilities(client: Skailify, navigation: Navigation | u
       input: z.object({}),
       handler: async () => ({ current: client.currentView()?.id ?? null, views: navigation.views() }),
     }),
-    agentAction({
+    // navigate waits for the view itself, to answer the state after it; the wrapper must not wait a second time
+    {
+      ...agentAction({
       name: "navigate",
       displayName: "Show a view",
       description:
@@ -102,7 +104,9 @@ export function genericCapabilities(client: Skailify, navigation: Navigation | u
         await navigation.navigate(view, params ?? {});
         return viewState(client, await client.settle());
       },
-    }),
+      }),
+      [SETTLES_ITSELF]: true,
+    },
   );
   return generic;
 }

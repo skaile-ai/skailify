@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { afterEach, expect, test } from "bun:test";
-import { type AppLogger, noopLogger } from "@skaile/workspaces/app-sdk";
+import { type AppLogger, type AppTransport, noopLogger } from "@skaile/workspaces/app-sdk";
 import { createFakeGateway, type FakeGateway } from "@skaile/workspaces/app-sdk/testing";
 import * as z from "zod";
 import { createSkailify, type Skailify, type SkailifyOptions } from "../../src/index.ts";
@@ -25,6 +25,14 @@ async function connected(options: Partial<SkailifyOptions> = {}): Promise<{ gate
 
 const noInput = z.object({});
 
+async function until(predicate: () => boolean, timeoutMs = 1000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error("condition not met in time");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
 test("standalone, the client does not connect and keeps its registrations", async () => {
   const resolveParams = () => Promise.reject(new Error("must not be called"));
   client = createSkailify({ appId: "test", windowRef: { parent: null, location: { search: "" } }, resolveParams, logger: noopLogger });
@@ -35,31 +43,46 @@ test("standalone, the client does not connect and keeps its registrations", asyn
   expect(client.getSnapshot().capabilities.map((c) => c.name)).toEqual(["app.get_view_state", "app.x.do"]);
 });
 
-test("embedded, it asks the host for params and a fresh token on every connect", async () => {
+test("embedded, it asks the host for params and hands out a fresh token on every connect", async () => {
   gateway = createFakeGateway();
   const g = gateway;
-  const self = { parent: null as unknown, location: { search: "?skaileParentOrigin=https%3A%2F%2Fskaile.example" } };
-  self.parent = {};
   const asked: string[] = [];
+  const used: string[] = [];
   let n = 0;
   client = createSkailify({
     appId: "test",
-    windowRef: self,
+    windowRef: { parent: {}, location: { search: "?skaileParentOrigin=https%3A%2F%2Fskaile.example" } },
     logger: noopLogger,
-    reconnect: false,
+    reconnect: { baseMs: 5, maxMs: 10 },
     resolveParams: async (appId, origin) => {
       asked.push(`${appId}@${origin}`);
       return { appId, url: "wss://gw", token: `t${++n}` };
     },
-    createTransport: (url, token) => {
+    createTransport: (url, token): AppTransport => {
       expect(url).toBe("wss://gw");
-      void Promise.resolve(token()).then((t) => expect(t).toBe("t1"));
-      return g.transport();
+      const inner = g.transport();
+      return {
+        connect: async () => {
+          used.push(await token());
+          return inner.connect();
+        },
+        disconnect: () => inner.disconnect(),
+        send: (message) => inner.send(message),
+        onMessage: (handler) => inner.onMessage(handler),
+        onDisconnect: (handler) => inner.onDisconnect(handler),
+        get connected() {
+          return inner.connected;
+        },
+      };
     },
   });
   await client.start();
-  expect(asked).toEqual(["test@https://skaile.example"]);
   expect(client.getSnapshot().status).toMatchObject({ state: "connected", sessionId: "fake-session" });
+  g.drop();
+  await g.waitFor((gw) => gw.helloCount === 2 && gw.bound);
+  // the first connect reuses the token that came with the url; the reconnect asks the host again
+  expect(used).toEqual(["t1", "t2"]);
+  expect(asked).toEqual(["test@https://skaile.example", "test@https://skaile.example"]);
 });
 
 test("a handshake failure shows in the status and the log, and start() does not reject", async () => {
@@ -169,7 +192,7 @@ test("get_view_state waits for a loading view and returns the exposed state", as
     state: { orders: [{ id: "o1" }] },
     settled: true,
   });
-  expect(state.actions).toContain("app.get_view_state");
+  expect(state.actions).toContain("app.test.get_view_state");
 });
 
 test("get_view_state says settled: false when a view is still loading at the timeout", async () => {
@@ -233,4 +256,141 @@ test("after a dropped socket the client re-registers what is registered now", as
   gateway.drop();
   await gateway.waitFor((g) => g.helloCount === 2 && g.capabilities.has("app.x.do"));
   expect(client.getSnapshot().activity.map((a) => a.label)).toContain("disconnected");
+});
+
+test("an effect says loading while its handler runs", async () => {
+  const { gateway, client } = await connected();
+  let phaseInHandler = "";
+  client.registerAction({ name: "x.do", description: "x", input: noInput, handler: async () => {
+    await gateway.waitFor((g) => g.view.phase === "loading");
+    phaseInHandler = gateway.view.phase ?? "";
+    return 1;
+  } });
+  await gateway.waitFor((g) => g.capabilities.has("app.x.do"));
+  await gateway.invoke("app.x.do");
+  expect(phaseInHandler).toBe("loading");
+  await gateway.waitForSettled();
+});
+
+test("parallel effects: no settled until the last one is done", async () => {
+  const { gateway, client } = await connected();
+  let release = () => {};
+  const slowDone = new Promise<void>((r) => {
+    release = r;
+  });
+  client.registerAction({ name: "x.slow", description: "slow", input: noInput, handler: async () => {
+    await slowDone;
+    return "slow";
+  } });
+  client.registerAction({ name: "x.fast", description: "fast", input: noInput, handler: async () => "fast" });
+  await gateway.waitFor((g) => g.capabilities.has("app.x.slow") && g.capabilities.has("app.x.fast"));
+  const slow = gateway.invoke("app.x.slow");
+  await gateway.waitFor((g) => g.view.phase === "loading");
+  const since = gateway.frames.length;
+  expect(await gateway.invoke("app.x.fast")).toBe("fast");
+  await new Promise((r) => setTimeout(r, 30));
+  expect(gateway.frames.slice(since).some((f) => f.message.type === "view_settled")).toBe(false);
+  expect(gateway.view.phase).toBe("loading");
+  release();
+  expect(await slow).toBe("slow");
+  await gateway.waitFor((g) => g.view.phase === "settled");
+});
+
+test("with animation frames paused (a background tab), calls still finish within their timeout", async () => {
+  const g = globalThis as { requestAnimationFrame?: unknown };
+  const saved = g.requestAnimationFrame;
+  g.requestAnimationFrame = () => 0; // never calls back
+  try {
+    const { gateway, client } = await connected();
+    client.registerAction({ name: "x.do", description: "x", input: noInput, handler: async () => 1 });
+    await gateway.waitFor((gw) => gw.capabilities.has("app.x.do"));
+    const started = Date.now();
+    expect(await gateway.invoke("app.get_view_state", { timeoutMs: 20 }, { timeoutMs: 500 })).toMatchObject({ settled: true });
+    expect(await gateway.invoke("app.x.do", {}, { timeoutMs: 500 })).toBe(1);
+    await gateway.waitForSettled({ timeoutMs: 500 });
+    expect(Date.now() - started).toBeLessThan(400);
+  } finally {
+    g.requestAnimationFrame = saved;
+  }
+});
+
+test("a view that stops loading while disconnected is settled after the reconnect", async () => {
+  gateway = createFakeGateway();
+  client = createSkailify({ appId: "test", transport: gateway.transport(), reconnect: { baseMs: 20, maxMs: 20 }, logger: noopLogger });
+  await client.start();
+  const view = client.registerView({ id: "v", loading: true });
+  await gateway.waitFor((g) => g.view.phase === "loading");
+  gateway.drop();
+  view.update({ id: "v", state: { done: true } });
+  await gateway.waitFor((g) => g.helloCount === 2 && g.bound);
+  await gateway.waitFor((g) => g.view.phase === "settled");
+  expect(gateway.view.report).toMatchObject({ viewId: "v", state: { done: true } });
+});
+
+test("navigate waits for a view stuck loading once, not twice", async () => {
+  const { gateway, client } = await connected({
+    settleTimeoutMs: 150,
+    navigation: { views: () => [{ id: "slow" }], navigate: () => {} },
+  });
+  client.registerView({ id: "slow", loading: true });
+  const started = Date.now();
+  expect(await gateway.invoke("app.navigate", { view: "slow" })).toMatchObject({ settled: false });
+  const elapsed = Date.now() - started;
+  expect(elapsed).toBeGreaterThanOrEqual(140);
+  expect(elapsed).toBeLessThan(280);
+});
+
+test("descriptions and get_view_state name capabilities the way the agent calls them", async () => {
+  const { gateway, client } = await connected({ navigation: { views: () => [{ id: "a" }], navigate: () => {} } });
+  expect(gateway.capabilities.get("app.navigate")?.description).toContain("app.test.list_views");
+  expect(gateway.capabilities.get("app.list_views")?.description).toContain("app.test.navigate");
+  expect(client.getSnapshot().capabilities.find((c) => c.name === "app.navigate")?.agentName).toBe("app.test.navigate");
+  const state = (await gateway.invoke("app.get_view_state")) as { actions: string[] };
+  expect(state.actions.sort()).toEqual(["app.test.get_view_state", "app.test.list_views", "app.test.navigate"]);
+});
+
+test("a name the gateway would drop for its length is logged and never registered", async () => {
+  const errors: string[] = [];
+  const { gateway, client } = await connected({ logger: { ...noopLogger, error: (m: string) => errors.push(m) } });
+  client.registerAction({ name: `x.${"a".repeat(60)}`, description: "long", input: noInput, kind: "query", handler: async () => 1 });
+  await Promise.resolve();
+  expect(errors.some((e) => e.includes("longer than 64"))).toBe(true);
+  expect([...gateway.capabilities.keys()]).toEqual(["app.get_view_state"]);
+});
+
+test("when reconnecting gives up, the status says so", async () => {
+  gateway = createFakeGateway();
+  client = createSkailify({
+    appId: "test",
+    transport: gateway.transport(),
+    reconnect: { maxAttempts: 1, baseMs: 5, maxMs: 5 },
+    logger: noopLogger,
+  });
+  await client.start();
+  await gateway.close();
+  const c = client;
+  await until(() => c.getSnapshot().status.state === "error");
+  expect(c.getSnapshot().status).toEqual({ state: "error", message: "reconnect gave up" });
+});
+
+test("without reconnect, a dropped connection is an error, not reconnecting", async () => {
+  const { gateway, client } = await connected();
+  gateway.drop();
+  await gateway.waitFor(() => client.getSnapshot().status.state === "error");
+  expect(client.getSnapshot().status).toEqual({ state: "error", message: "connection lost" });
+});
+
+test("close() before start() leaves it closed, and start() then does nothing", async () => {
+  gateway = createFakeGateway();
+  client = createSkailify({ appId: "test", transport: gateway.transport(), logger: noopLogger });
+  await client.close();
+  await client.start();
+  expect(client.getSnapshot().status).toEqual({ state: "closed" });
+  expect(gateway.helloCount).toBe(0);
+});
+
+test("enabled: false never connects, not even over a transport", async () => {
+  const { gateway, client } = await connected({ enabled: false });
+  expect(client.getSnapshot().status).toEqual({ state: "standalone" });
+  expect(gateway.helloCount).toBe(0);
 });

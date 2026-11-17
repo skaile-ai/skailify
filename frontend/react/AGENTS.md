@@ -21,7 +21,9 @@ The adapter registers these capabilities itself (declared as `app.<name>`; the a
 | `app.list_views` | query | none | The app's views (only with the `navigation` option) |
 | `app.navigate` | effect | none | Shows a view and returns its state (only with the `navigation` option) |
 
-Everything else is an action the app declares with `useAgentAction`, named `app.<sector>.<verb>`.
+Everything else is an action the app declares with `useAgentAction`, with a relative name
+`<sector>.<verb>` (for example `orders.approve`); the agent sees it as `app.<appId>.orders.approve`.
+Do not write the `app.` prefix yourself: a name that starts with it throws.
 
 ## What works today, and what does not
 
@@ -50,8 +52,16 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 npm install @skaile/skailify-react @skaile/workspaces zod
 ```
 
-The package is not on npm yet. Until it is, install it from a checkout of this repository:
-`npm install <path to checkout>/frontend/react @skaile/workspaces zod`.
+The package is not on npm yet. Until it is, pack it from a checkout of this repository and install
+the tarball, so the app keeps a single copy of React, zod and the app SDK:
+
+```sh
+cd <checkout>/frontend/react && npm pack     # writes skaile-skailify-react-<version>.tgz
+cd <app> && npm install <checkout>/frontend/react/skaile-skailify-react-<version>.tgz @skaile/workspaces zod
+```
+
+Do not install it by path (`npm install <checkout>/frontend/react`): that links the folder, and the
+bundler may then load a second React from the checkout's `node_modules` ("Invalid hook call").
 
 Install the adapter once, in the app's own `package.json`. Two copies (for example one in a shared
 UI library and one in the app) mean two contexts: the hooks of one copy do not see the provider of the
@@ -90,6 +100,8 @@ useAgentView({ id: "orders", title: "Orders", state: { filter, shown: rows.lengt
 
 - `id` is stable: a route or screen name, with the record key for a detail (`order/42`).
 - `state` is a small JSON-serialisable summary. It is compared on every render, so keep it small.
+  State that cannot be serialised (a `BigInt`, a cycle) does not break rendering, but its report is
+  refused and an error is logged on every render.
 - Pass `loading: true` while the view fetches what it shows. The agent waits until it is false before
   it reads the screen; a view that loads data and never says so may be read empty.
 
@@ -149,8 +161,8 @@ useAgentAction({
 Run each of these and report exactly which you ran and what happened.
 
 1. The adapter's own tests, in this repository: `bun install`, then in `frontend/react`
-   `bun run test` (22 pass) and `bun run type-check`.
-2. The app SDK's conformance checks: `bun run conformance` in `frontend/react` (7 pass). For the app
+   `bun run test` and `bun run type-check`: no test fails.
+2. The app SDK's conformance checks: `bun run conformance` in `frontend/react`: one test per check, none fails. For the app
    itself, copy `test/conformance/conformance.test.ts`, create the client with
    `transport: gateway.transport()` and register your own actions.
 3. The app's own type-check and build pass, and the app works as before when it is opened on its own

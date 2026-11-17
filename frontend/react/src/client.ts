@@ -59,7 +59,10 @@ export interface ActivityEntry {
  * `defineAppCapability` arguments, including `requiresApproval` and `effectClass`.
  */
 export type AgentAction<T extends z.ZodTypeAny = z.ZodTypeAny, R extends z.ZodTypeAny | undefined = z.ZodTypeAny | undefined> =
-  DefineAppCapabilityArgs<T, R>;
+  DefineAppCapabilityArgs<T, R> & {
+    /** @internal the handler waits for the view itself */
+    [SETTLES_ITSELF]?: boolean;
+  };
 
 /** Types an action's handler from its input schema, for an action declared outside a component. */
 export function agentAction<T extends z.ZodTypeAny, R extends z.ZodTypeAny | undefined = undefined>(action: AgentAction<T, R>): AgentAction {
@@ -79,7 +82,10 @@ export interface ViewRegistration {
 
 /** A capability as the agent sees it, for a panel in the app's own UI. */
 export interface CapabilityInfo {
+  /** As registered: `app.board.add_card` */
   name: string;
+  /** As the agent calls it: `app.<appId>.board.add_card` */
+  agentName: string;
   displayName?: string;
   description: string;
   kind?: "effect" | "render" | "query";
@@ -101,7 +107,7 @@ interface WindowLike {
 export interface SkailifyOptions {
   /** The app's id: the `id` of its entry in the workspace's `skaile.preview.json` */
   appId: string;
-  /** `auto` (default): connect when embedded in Skaile; `false`: never */
+  /** `auto` (default): connect when embedded in Skaile; `false`: never, not even over `transport` */
   enabled?: "auto" | false;
   /**
    * The app's views and how to show one, router-agnostic. With it the agent gets `list_views` and `navigate`;
@@ -137,8 +143,14 @@ export interface Skailify {
    * name the one registered last is offered; removing it offers the one before again.
    */
   registerAction<T extends z.ZodTypeAny, R extends z.ZodTypeAny | undefined = undefined>(action: AgentAction<T, R>): () => void;
-  /** Adds a view; returns the function that updates it and the one that removes it. */
-  registerView(view: ViewRegistration): { update(view: ViewRegistration): void; remove(): void };
+  /**
+   * Adds a view; returns the function that updates it and the one that removes it. Of several mounted views the one
+   * with the highest `order` is on screen; without one, the view added last. Pass an order from {@link viewOrder}
+   * taken while rendering, so a parent and the child it contains, mounted together, keep the child on top.
+   */
+  registerView(view: ViewRegistration, order?: number): { update(view: ViewRegistration): void; remove(): void };
+  /** A new view order, increasing; take it when a view first renders */
+  viewOrder(): number;
   /** Exposes a named piece of state to `get_view_state`; `read` is called on every read. */
   registerState(name: string, read: () => unknown): () => void;
   /** The view on screen: the last one mounted, else the navigation's current view */
@@ -154,6 +166,8 @@ export interface Skailify {
   settle(timeoutMs?: number): Promise<boolean>;
   /** The full name of a relative one: `board.add_card` → `app.board.add_card` */
   fullName(name: string): string;
+  /** The name the agent calls: `board.add_card` → `app.<appId>.board.add_card` */
+  agentName(name: string): string;
   /** For `useSyncExternalStore` */
   subscribe(listener: () => void): () => void;
   getSnapshot(): SkailifySnapshot;
@@ -174,13 +188,32 @@ export function skaileParentOrigin(windowRef: WindowLike | undefined = globalThi
   return origin && origin !== "*" && origin !== "null" ? origin : null;
 }
 
-/** Resolves after the browser had a chance to render: the next frame where there is one, else the next task. */
+/**
+ * Resolves after the browser had a chance to render: the next frame, or after {@link RENDER_FALLBACK_MS} when no frame
+ * comes. Browsers pause animation frames in background tabs and hidden iframes, so a frame alone could wait forever.
+ */
 function afterRender(): Promise<void> {
   return new Promise((resolve) => {
     const raf = (globalThis as { requestAnimationFrame?: (cb: () => void) => number }).requestAnimationFrame;
-    setTimeout(() => (raf ? raf(() => resolve()) : resolve()), 0);
+    setTimeout(() => {
+      if (!raf) return resolve();
+      const fallback = setTimeout(resolve, RENDER_FALLBACK_MS);
+      raf(() => {
+        clearTimeout(fallback);
+        resolve();
+      });
+    }, 0);
   });
 }
+
+/** How long to wait for an animation frame before treating the page as rendered */
+const RENDER_FALLBACK_MS = 50;
+
+/** The longest agent-visible name the gateway registers, `app.<appId>.<name>` */
+export const MAX_AGENT_NAME_CHARS = 64;
+
+/** Marks a capability whose handler waits for the view itself, so the wrapper does not wait a second time. */
+export const SETTLES_ITSELF: unique symbol = Symbol("skailify.settlesItself");
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -198,10 +231,22 @@ function summarize(value: unknown, max = 120): string | undefined {
 }
 
 export function createSkailify(options: SkailifyOptions): Skailify {
-  const logger = options.logger ?? consoleLogger;
+  const baseLogger = options.logger ?? consoleLogger;
+  // The SDK says it has given up reconnecting only through its logger; turn that into a status.
+  const logger: AppLogger = {
+    ...baseLogger,
+    error(message: string, fields?: Record<string, unknown>) {
+      baseLogger.error(message, fields);
+      if (!closed && (message === "app reconnect gave up" || message === "app reconnect refused permanently")) {
+        setStatus({ state: "error", message: message.replace(/^app /, "") });
+        log({ direction: "out", label: "connection lost", detail: message, error: true });
+      }
+    },
+  };
   const settleTimeout = Math.min(options.settleTimeoutMs ?? 3000, MAX_WAIT_MS);
   const activityLimit = options.activityLimit ?? 40;
   const fullName = (name: string) => `app.${name}`;
+  const agentName = (name: string) => `app.${options.appId}.${name}`;
 
   let app: SkaileApp | null = null;
   let started: Promise<void> | null = null;
@@ -229,7 +274,8 @@ export function createSkailify(options: SkailifyOptions): Skailify {
 
   // ── Views and state ───────────────────────────────────────────────────────
   let viewSeq = 0;
-  const views = new Map<number, ViewRegistration>();
+  /** Each view with its order: the view rendered last is the one on screen. */
+  const views = new Map<number, { view: ViewRegistration; order: number }>();
   const states = new Map<number, { name: string; read: () => unknown }>();
   const viewListeners = new Set<() => void>();
   // React's double mount in development removes and re-adds a view in one commit: report once, after it
@@ -245,8 +291,9 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   };
 
   function currentView(): ViewRegistration | null {
-    const mounted = [...views.values()].at(-1);
-    if (mounted) return mounted;
+    let top: { view: ViewRegistration; order: number } | undefined;
+    for (const entry of views.values()) if (!top || entry.order > top.order) top = entry;
+    if (top) return top.view;
     const id = options.navigation?.current?.();
     if (!id) return null;
     const descriptor = options.navigation?.views().find((v) => v.id === id);
@@ -265,7 +312,10 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     return out;
   }
 
-  const loading = () => [...views.values()].some((v) => v.loading === true);
+  const loading = () => [...views.values()].some((v) => v.view.loading === true);
+  /** Effects running now: while one runs, the view is not settled even when no view is loading */
+  let inFlight = 0;
+  const busy = () => inFlight > 0 || loading();
 
   /** What goes out in `view_report`; the app id stands in when no view is known, since the report needs one. */
   function report(): AppViewReport {
@@ -273,14 +323,19 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     return view ? { viewId: view.id, title: view.title, state: view.state } : { viewId: options.appId };
   }
 
+  // The SDK keeps the last report and phase while disconnected and replays them on every bind, so they are sent
+  // whether or not a session is bound: what the platform sees after a reconnect is then what is true now.
   let lastReport = "";
-  let wasLoading = false;
-  /** Reports the view when it changed and says `loading` / `settled` when a view starts or stops loading. */
-  function reportIfChanged(): void {
-    if (!app?.session) return;
+  let sentLoading = false;
+  /**
+   * Reports the view when it changed (always with `force`), and says `loading` when the app becomes busy and `settled`
+   * when it stops (with `force`, whenever it is not busy).
+   */
+  function reportIfChanged(force = false): void {
+    if (!app) return;
     const next = report();
     const key = JSON.stringify(next);
-    if (key !== lastReport) {
+    if (force || key !== lastReport) {
       lastReport = key;
       try {
         app.reportView(next);
@@ -288,43 +343,42 @@ export function createSkailify(options: SkailifyOptions): Skailify {
         logger.error("skailify: could not report the view", { message: describe(error) });
       }
     }
-    const now = loading();
-    if (now !== wasLoading) {
-      wasLoading = now;
-      if (now) app.loading("view loading");
-      else app.settled();
+    const now = busy();
+    if (now && !sentLoading) {
+      sentLoading = true;
+      app.loading("view loading");
+    } else if (!now && (sentLoading || force)) {
+      sentLoading = false;
+      app.settled();
     }
   }
 
   function settle(timeoutMs = settleTimeout): Promise<boolean> {
     const limit = Math.min(Math.max(timeoutMs, 0), MAX_WAIT_MS);
-    return afterRender().then(
-      () =>
-        new Promise<boolean>((resolve) => {
-          let finished = false;
-          const finish = (settled: boolean) => {
-            if (finished) return;
-            finished = true;
-            clearTimeout(timer);
-            viewListeners.delete(check);
-            // the report may not have changed, but the agent waits for this settled. While a view is still loading
-            // (the wait timed out) it is not sent: the view sends it when it stops loading.
-            if (app?.session) {
-              lastReport = "";
-              wasLoading = loading();
-              reportIfChanged();
-              if (!wasLoading) app.settled();
-            }
-            resolve(settled);
-          };
-          const check = () => {
-            if (!loading()) finish(true);
-          };
-          const timer = setTimeout(() => finish(!loading()), limit);
-          viewListeners.add(check);
-          check();
-        }),
-    );
+    return new Promise<boolean>((resolve) => {
+      let finished = false;
+      let rendered = false;
+      const finish = (settled: boolean) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        viewListeners.delete(check);
+        // The report may not have changed, but the agent waits for this settled. While the app is still busy (a view
+        // loading at the timeout, another effect running) it is not sent: it goes out when the app stops being busy.
+        reportIfChanged(true);
+        resolve(settled);
+      };
+      const check = () => {
+        if (rendered && !loading()) finish(true);
+      };
+      // the deadline covers the wait for the render too
+      const timer = setTimeout(() => finish(!loading()), limit);
+      viewListeners.add(check);
+      void afterRender().then(() => {
+        rendered = true;
+        check();
+      });
+    });
   }
 
   // ── Capabilities ──────────────────────────────────────────────────────────
@@ -339,14 +393,22 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     if (defined.has(action)) return defined.get(action) ?? null;
     const name = fullName(action.name);
     const isEffect = (action.kind ?? "effect") === "effect";
+    const settlesItself = (action as { [SETTLES_ITSELF]?: boolean })[SETTLES_ITSELF] === true;
     let capability: DefinedAppCapability | null;
     try {
+      if (agentName(action.name).length > MAX_AGENT_NAME_CHARS) {
+        throw new Error(`${agentName(action.name)} is longer than ${MAX_AGENT_NAME_CHARS} characters, the gateway would drop it`);
+      }
       capability = defineAppCapability({
         ...action,
         name,
         handler: async (args: unknown, ctx: AppHandlerContext) => {
           log({ direction: "in", label: action.name, detail: summarize(args) });
-          if (isEffect) app?.loading(action.name);
+          if (isEffect) {
+            inFlight++;
+            sentLoading = true;
+            app?.loading(action.name);
+          }
           try {
             const result = await action.handler(args, ctx);
             log({ direction: "out", label: action.name, detail: summarize(result) });
@@ -355,7 +417,11 @@ export function createSkailify(options: SkailifyOptions): Skailify {
             log({ direction: "out", label: action.name, detail: describe(error), error: true });
             throw error;
           } finally {
-            if (isEffect) await settle();
+            if (isEffect) {
+              inFlight--;
+              if (settlesItself) reportIfChanged(true);
+              else await settle();
+            }
           }
         },
       } as DefineAppCapabilityArgs<z.ZodTypeAny, z.ZodTypeAny | undefined>);
@@ -378,6 +444,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     }
     capabilityInfo = [...now.values()].map((c) => ({
       name: c.name,
+      agentName: agentName(c.name.slice(4)),
       displayName: c.displayName,
       description: c.description,
       kind: c.kind,
@@ -410,17 +477,15 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     registered = new Map();
     sync();
     flushWire();
+    reportIfChanged(true);
     app.onSessionChange((session: AppSession | null) => {
       if (session) {
+        // the SDK replays the last report and phase on a bind; they are kept current while disconnected
         setStatus({ state: "connected", sessionId: session.sessionId, userId: session.userId });
         log({ direction: "out", label: "connected", detail: `session ${session.sessionId}` });
-        // the SDK replays the last report on a bind; send it again only when it changed meanwhile
-        lastReport = "";
-        wasLoading = false;
-        reportIfChanged();
       } else if (!closed) {
-        setStatus({ state: "reconnecting" });
         log({ direction: "out", label: "disconnected" });
+        setStatus(options.reconnect === false ? { state: "error", message: "connection lost" } : { state: "reconnecting" });
       }
     });
     if (closed) {
@@ -431,11 +496,16 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   }
 
   async function run(): Promise<void> {
+    if (closed) return;
+    if (options.enabled === false) {
+      setStatus({ state: "standalone" });
+      return;
+    }
     if (options.transport) {
       setStatus({ state: "connecting" });
       return connect(options.transport);
     }
-    const parentOrigin = options.enabled === false ? null : skaileParentOrigin(options.windowRef);
+    const parentOrigin = skaileParentOrigin(options.windowRef);
     if (!parentOrigin) {
       setStatus({ state: "standalone" });
       return;
@@ -492,14 +562,16 @@ export function createSkailify(options: SkailifyOptions): Skailify {
         if (actions.delete(key)) sync();
       };
     },
-    registerView(view) {
+    viewOrder: () => ++viewSeq,
+    registerView(view, order) {
       const key = ++viewSeq;
-      views.set(key, view);
+      const entry = { view, order: order ?? key };
+      views.set(key, entry);
       viewChanged();
       return {
         update(next) {
           if (!views.has(key)) return;
-          views.set(key, next);
+          views.set(key, { view: next, order: entry.order });
           viewChanged();
         },
         remove() {
@@ -516,6 +588,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     },
     currentView,
     readState,
+    agentName,
     loading,
     settle,
     fullName,

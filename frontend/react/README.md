@@ -30,11 +30,18 @@ the platform would refuse it.
 
 ### Views, loading and settled
 
-The agent waits for `settled` before it reads the screen. The adapter sends it for you:
+The app SDK's conformance checks require a view report and `settled` after every call that changes
+the view, so that the agent can wait for the screen before it reads it. (Today the platform accepts
+these frames and drops them; the agent reads the screen with `get_view_state`, which waits by itself.)
+The adapter sends them for you:
 
-- after every effect (your actions and `navigate`), once React has rendered and no mounted view says
-  it is loading, together with a fresh view report;
-- whenever a view stops loading.
+- `loading` when an effect (your actions and `navigate`) starts or a view starts loading;
+- after every effect, once React has rendered and no mounted view says it is loading, a fresh view
+  report and `settled`, unless another effect is still running;
+- `settled` whenever a view stops loading and nothing else is running.
+
+While disconnected the adapter keeps both up to date, and the SDK replays them on the reconnect. The
+view on screen is the innermost mounted one: of a view and the view it contains, the inner one.
 
 A view says it is loading with `useAgentView({ id, loading: true })` while it fetches what it shows.
 A call waits at most `settleTimeoutMs` (default 3 s, at most 10 s); when the wait times out the
@@ -108,7 +115,8 @@ the capabilities and the agent's calls. The tests drive it through the app SDK's
 ## SDK version
 
 Peer `@skaile/workspaces` ^10.4.0, the first version with view reports, `loading` and `settled`, and
-the conformance kit. Tested against 10.4.0 and 10.11.0, with React 18.3 and 19.
+the conformance kit. CI runs the tests and the conformance checks against the lowest and the latest
+version in that range (10.4.0 and 10.11.0 today) with React 19; React 18.3.1 was tested by hand.
 
 ## Development
 

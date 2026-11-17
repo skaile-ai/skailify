@@ -5,7 +5,7 @@
  * component tells the agent what it shows and what it can do, for as long as
  * it is mounted.
  */
-import { createContext, type ReactNode, useContext, useEffect, useRef, useSyncExternalStore } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as z from "zod";
 import type { ActivityEntry, AgentAction, CapabilityInfo, ConnectionStatus, Skailify, ViewRegistration } from "./client.ts";
 
@@ -95,21 +95,33 @@ export function useAgentAction<T extends z.ZodTypeAny, R extends z.ZodTypeAny | 
 export function useAgentView(view: ViewRegistration): void {
   const client = useSkailify();
   const registration = useRef<ReturnType<Skailify["registerView"]> | null>(null);
-  const key = JSON.stringify([view.id, view.title, view.state, view.loading === true]);
+  // Taken at the first render: a parent renders before the child it contains, so the child is on top even though
+  // React runs the child's effects first.
+  const [order] = useState(() => client.viewOrder());
+  const key = viewKey(view);
   const latest = useRef(view);
   latest.current = view;
 
   useEffect(() => {
-    registration.current = client.registerView(latest.current);
+    registration.current = client.registerView(latest.current, order);
     return () => {
       registration.current?.remove();
       registration.current = null;
     };
-  }, [client]);
+  }, [client, order]);
 
   useEffect(() => {
     registration.current?.update(latest.current);
   }, [key]);
+}
+
+/** Compares a view across renders. State that is not JSON-serialisable never breaks rendering: the report of it is refused and logged. */
+function viewKey(view: ViewRegistration): string {
+  try {
+    return JSON.stringify([view.id, view.title, view.state, view.loading === true]);
+  } catch {
+    return JSON.stringify([view.id, view.title, String(Math.random()), view.loading === true]);
+  }
 }
 
 /**
