@@ -19,7 +19,9 @@ package, so "app-sdk version" means a version of that package.
    to raise the floor: the workflow cannot check versions it has no checks for.
 2. **One job per version**, each with the version installed exactly:
    - `kind: js`: `bun install`, `bun add --dev --exact @skaile/workspaces@<version>`, then
-     `bun run test` and `bun run conformance` in the adapter folder.
+     `bun run test` and `bun run conformance` in the adapter folder. Unless the package is
+     `"private": true`, it also runs `bun run build` (when there is a `build` script) and
+     `publint --strict`, so what the package would publish to npm is checked too.
    - `kind: java`: a JDK (17 by default), the folder's own wrapper (`./gradlew build` or
      `./mvnw -B verify`), then it starts the server, waits for its MCP endpoint and runs
      `skailify-check-mcp <mcp-url>` from that `@skaile/workspaces` version.

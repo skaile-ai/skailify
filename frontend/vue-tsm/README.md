@@ -9,8 +9,11 @@ its router and its app id, and its views register what they show.
 It connects only when the app is embedded in Skaile as a `protocol` preview app: an iframe whose URL
 carries `skaileParentOrigin`. Opened on its own, the app does not connect, and registrations cost nothing.
 
-Not published to npm yet (`private: true`): install it from this repository. Contributed by Data In Motion, who built
-it for a Vue/tsm app of their own.
+```sh
+npm install @skaile/skailify-vue-tsm
+```
+
+Contributed by Data In Motion, who built it for a Vue/tsm app of their own.
 
 ## Capabilities
 

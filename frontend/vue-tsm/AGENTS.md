@@ -50,8 +50,12 @@ match, the next minor version does not. Move to caret ranges once they are stabl
 
 ## Step 1: install
 
-Add the package (from this repository, until it is published) and its peers to the app. In an
-app whose views are separate bundles, serve the package **once** through the import map as a
+```sh
+npm install @skaile/skailify-vue-tsm @skaile/workspaces zod vue vue-router @emfts/core @emfts/uimodel-composer
+npm install @eclipse-daanse/tsm   # only if the views come from tsm view services
+```
+
+In an app whose views are separate bundles, serve the package **once** through the import map as a
 shared library, like `vue`, so that the shell and every view bundle share one registry. Two
 copies mean two registries, and the agent sees nothing a view registers.
 

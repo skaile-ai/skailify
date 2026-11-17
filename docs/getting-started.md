@@ -76,8 +76,8 @@ cd skailify-adapters
 bun install
 ```
 
-The repository root is a bun workspace over `frontend/*`, so every frontend adapter is installed from
-here.
+The repository root is a bun workspace over `frontend/*` and `backend/*`, so every JavaScript adapter
+is installed from here.
 
 ## 2. Create a dummy frontend adapter
 

@@ -11,6 +11,10 @@ It connects only when the app is embedded in Skaile as a preview app with the ap
 on (`"protocol": true`): an iframe whose URL carries `skaileParentOrigin`. Opened on its own, the app
 does not connect, and the hooks cost next to nothing.
 
+```sh
+npm install @skaile/skailify-react @skaile/workspaces zod
+```
+
 ## Capabilities
 
 The agent sees each one as `app.<appId>.<name>`, because the platform puts the app id in front of

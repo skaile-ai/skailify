@@ -55,7 +55,7 @@ Every new source file starts with an SPDX licence identifier, in the comment syn
 ```
 
 Use `Apache-2.0` everywhere except in `backend/emf-mcp/`, which is EPL-2.0 and carries its own `LICENSE`;
-files there use `SPDX-License-Identifier: EPL-2.0`. Files that cannot hold a comment (JSON, lockfiles)
+files there use `SPDX-License-Identifier: EPL-2.0`. Changesets (`.changeset/*.md`) and the `CHANGELOG.md` files written from them carry no header. Files that cannot hold a comment (JSON, lockfiles)
 take the licence of the folder they are in.
 
 ## Adding an adapter
@@ -64,7 +64,8 @@ take the licence of the folder they are in.
 2. Give it a `README.md` (what it exposes, how to build and test it) and an `AGENTS.md` a coding agent
    can follow to integrate it into an app.
 3. A JavaScript adapter has a `package.json` and joins the bun workspace; `bun install` at the
-   repository root installs it. A Java adapter commits its own build wrapper (`./mvnw` or `./gradlew`),
+   repository root installs it. To publish it to npm, set it up as in
+   [docs/releasing.md](docs/releasing.md#adding-a-package); until then, mark it `"private": true`. A Java adapter commits its own build wrapper (`./mvnw` or `./gradlew`),
    so it builds with only a JDK 17 or later.
 4. Keep it app-agnostic: the app passes in what is specific to it.
 5. Add a row to the adapter table in the [root README](README.md).
@@ -74,6 +75,9 @@ take the licence of the folder they are in.
 ## Pull requests
 
 - One change per pull request, with tests for what it changes.
+- A change to what a published adapter ships (its `src/`, `package.json` or build config) needs a
+  changeset: run `bun run changeset` and commit the file it writes. See
+  [docs/releasing.md](docs/releasing.md).
 - Title it `<type>(<adapter>): <description>`, with `<type>` one of `feat`, `fix`, `refactor`, `docs`,
   `test`, `chore`, `perf` or `build`; use `repo` as the scope for changes outside an adapter.
 - Make sure the adapter's build and tests pass locally before you open it.
