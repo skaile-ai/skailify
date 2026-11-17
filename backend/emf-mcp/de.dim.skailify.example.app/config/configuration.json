@@ -1,0 +1,43 @@
+{
+  ":configurator:resource-version": 1,
+  ":configurator:symbolic-name": "de.dim.skailify.example.app",
+  ":configurator:version": "0.1.0",
+
+  "org.apache.felix.http~example": {
+    "org.osgi.service.http.port:Integer": 8080,
+    "org.osgi.service.http.host": "127.0.0.1",
+    "org.apache.felix.http.name": "example",
+    "org.apache.felix.http.runtime.init.id": "example"
+  },
+  "fennec.repository.file~example": {
+    "repositoryId": "example",
+    "directory": "generated/example-data"
+  },
+  "SkailifyEmfTools~example": {
+    "skailify.model": "example",
+    "epackage.target": "(emf.nsURI=https://example.org/skailify/shop/1.0)",
+    "repository.target": "(persistence.repository.id=example)",
+    "unique.attributes": ["Named.name"]
+  },
+  "SkailifyToolProvider~example": {
+    "name": "example_tools",
+    "description": "Tools over the example shop model",
+    "tools.target": "(skailify.model=example)",
+    "tools.cardinality.minimum:Integer": 3
+  },
+  "SkailifyMCPServer~example": {
+    "server.name": "skailify-emf-example",
+    "osgi.http.whiteboard.servlet.pattern": "/mcp",
+    "osgi.http.whiteboard.target": "(id=example)",
+    "has.tool.capability": true,
+    "toolProviders.target": "(name=example_tools)",
+    "toolProviders.cardinality.minimum:Integer": 1
+  },
+  "SkailifyManifest~example": {
+    "app.id": "shop",
+    "app.name": "Example Shop",
+    "app.description": "The example shop model of the Skailify EMF/MCP adapter",
+    "mcp.endpoint": "/mcp",
+    "osgi.http.whiteboard.target": "(id=example)"
+  }
+}

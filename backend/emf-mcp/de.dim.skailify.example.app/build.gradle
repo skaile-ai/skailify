@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: EPL-2.0
+// Resolve into the build folder, so the committed bndrun stays free of a -runbundles list, and
+// run from there (as de.dim.skailify.tests does for its tests).
+def resolveTask = tasks.named("resolve.example") {
+	outputBndrun = layout.buildDirectory.file("example.bndrun")
+}
+
+tasks.named("run.example") {
+	bndrun = resolveTask.flatMap { it.outputBndrun }
+}

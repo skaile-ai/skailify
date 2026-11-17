@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: EPL-2.0
+# EXAMPLE ONLY, not part of the adapter: the adapter over the example shop model, configured for
+# a local run (./gradlew run.example). It carries nothing but its OSGi configuration, applied by
+# the OSGi Configurator. An app brings its own EPackage, repository and configuration.
+Bundle-Name: Skailify EMF - Example App
+Bundle-Description: Runs the Skailify MCP server over the example shop model on http://127.0.0.1:8080/mcp \
+	(read tools only, loopback callers only) with its discovery manifest
+
+-includeresource: OSGI-INF/configurator/configuration.json=config/configuration.json
+
+Require-Capability: \
+	osgi.extender;filter:="(&(osgi.extender=osgi.configurator)(version>=1.0)(!(version>=2.0)))"
+
+# the bundles it configures, on the buildpath so Gradle builds them before resolve/run
+-buildpath: \
+	de.dim.skailify.example.model;version=project,\
+	de.dim.skailify.testing.filerepository;version=project,\
+	de.dim.skailify.mcp;version=project,\
+	de.dim.skailify.emf.tools;version=project,\
+	de.dim.skailify.manifest;version=project
