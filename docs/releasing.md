@@ -10,6 +10,7 @@ short-lived OIDC credential and attaches provenance, and nobody holds an npm tok
 
 | Package | Folder |
 |---|---|
+| [`@skaile/skailify-angular`](https://www.npmjs.com/package/@skaile/skailify-angular) | `frontend/angular/` |
 | [`@skaile/skailify-react`](https://www.npmjs.com/package/@skaile/skailify-react) | `frontend/react/` |
 | [`@skaile/skailify-vue-tsm`](https://www.npmjs.com/package/@skaile/skailify-vue-tsm) | `frontend/vue-tsm/` |
 
