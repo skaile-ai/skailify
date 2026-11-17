@@ -115,7 +115,7 @@ export function useAgentView(view: ViewRegistration): void {
   }, [key]);
 }
 
-/** Compares a view across renders. State that is not JSON-serialisable never breaks rendering: the report of it is refused and logged. */
+/** Compares a view across renders. State that is not JSON-serialisable never breaks rendering: the view is reported with an error state, and the error logged. */
 function viewKey(view: ViewRegistration): string {
   try {
     return JSON.stringify([view.id, view.title, view.state, view.loading === true]);

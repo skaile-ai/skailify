@@ -52,16 +52,10 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 npm install @skaile/skailify-react @skaile/workspaces zod
 ```
 
-The package is not on npm yet. Until it is, pack it from a checkout of this repository and install
-the tarball, so the app keeps a single copy of React, zod and the app SDK:
-
-```sh
-cd <checkout>/frontend/react && npm pack     # writes skaile-skailify-react-<version>.tgz
-cd <app> && npm install <checkout>/frontend/react/skaile-skailify-react-<version>.tgz @skaile/workspaces zod
-```
-
-Do not install it by path (`npm install <checkout>/frontend/react`): that links the folder, and the
-bundler may then load a second React from the checkout's `node_modules` ("Invalid hook call").
+React, zod and the app SDK are peer dependencies, so the app keeps a single copy of each. To try an
+unreleased change, install a packed tarball (`npm pack` in `frontend/react` of a checkout of this
+repository), never the folder by path: a path install links the folder, and the bundler may then load
+a second React from the checkout's `node_modules` ("Invalid hook call").
 
 Install the adapter once, in the app's own `package.json`. Two copies (for example one in a shared
 UI library and one in the app) mean two contexts: the hooks of one copy do not see the provider of the
@@ -100,8 +94,9 @@ useAgentView({ id: "orders", title: "Orders", state: { filter, shown: rows.lengt
 
 - `id` is stable: a route or screen name, with the record key for a detail (`order/42`).
 - `state` is a small JSON-serialisable summary. It is compared on every render, so keep it small.
-  State that cannot be serialised (a `BigInt`, a cycle) does not break rendering, but its report is
-  refused and an error is logged on every render.
+  State that cannot be serialised (a `BigInt`, a cycle), here or in `useAgentState`, breaks neither
+  rendering nor the connection: the agent reads `{ error: "state is not JSON-serialisable" }` in its
+  place, the rest of the answer is unaffected, and the error is logged once.
 - Pass `loading: true` while the view fetches what it shows. The agent waits until it is false before
   it reads the screen; a view that loads data and never says so may be read empty.
 
