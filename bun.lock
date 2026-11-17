@@ -21,6 +21,40 @@
         "zod": "^4.4.0",
       },
     },
+    "frontend/angular": {
+      "name": "@skaile/skailify-angular",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@angular/common": "^22.2.0",
+        "@angular/compiler": "^22.2.0",
+        "@angular/core": "^22.2.0",
+        "@angular/platform-browser": "^22.2.0",
+        "@angular/router": "^22.2.0",
+        "@happy-dom/global-registrator": "^20.0.0",
+        "@ngrx/signals": "^22.0.0",
+        "@ngrx/store": "^22.0.0",
+        "@skaile/workspaces": "10.11.0",
+        "@types/bun": "^1.3.0",
+        "publint": "0.3.25",
+        "rxjs": "^7.8.0",
+        "tsdown": "0.23.7",
+        "typescript": "~5.9.2",
+        "zod": "^4.4.0",
+      },
+      "peerDependencies": {
+        "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0",
+        "@angular/router": "^20.0.0 || ^21.0.0 || ^22.0.0",
+        "@ngrx/signals": "^20.0.0 || ^21.0.0 || ^22.0.0",
+        "@ngrx/store": "^20.0.0 || ^21.0.0 || ^22.0.0",
+        "@skaile/workspaces": "^10.4.0",
+        "zod": "^4.4.0",
+      },
+      "optionalPeers": [
+        "@angular/router",
+        "@ngrx/signals",
+        "@ngrx/store",
+      ],
+    },
     "frontend/react": {
       "name": "@skaile/skailify-react",
       "version": "0.1.0",
@@ -76,6 +110,16 @@
   },
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.7.0", "", { "peerDependencies": { "@modelcontextprotocol/server": "^2.4.0", "zod": "^3.25.76 || ^4.0.0" }, "optionalPeers": ["@modelcontextprotocol/server"] }, "sha512-oXdQq0plWv3iOg01zJghNZRSuyWeMYxOgWIaSdwg1BZe2ZAC9LRhNDi023lNYxXq1zVIpQjIp8P6AfsxpvxF6g=="],
+
+    "@angular/common": ["@angular/common@22.2.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/core": "22.2.6", "rxjs": "^6.5.3 || ^7.4.0" } }, "sha512-wL7qv2fb/qWIDhq6leX3SFGql76ljCPC6qXHB2KpKJ3GlppuF9fYJwLo+RicRyM72nFu9qQPzd9Zl9k3/eUisQ=="],
+
+    "@angular/compiler": ["@angular/compiler@22.2.6", "", { "dependencies": { "tslib": "^2.3.0" } }, "sha512-9QNqLAG+bqsTRDZZbggX50sS9NyWx3ACfgeLKUAaHPzebQXtIsAYIT6H8HNpR27GHJ2qJHi9yEm84hAJsKZCuQ=="],
+
+    "@angular/core": ["@angular/core@22.2.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/compiler": "22.2.6", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.15.0 || ~0.16.0" }, "optionalPeers": ["@angular/compiler", "zone.js"] }, "sha512-atESNSPsM0dBXU88aDtByBP4W/wb8USbhL16lsePyxBvAWtM1Xn7QBB489QTmHpY6VCXHnqMhXWcrZsDpoIBsw=="],
+
+    "@angular/platform-browser": ["@angular/platform-browser@22.2.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/animations": "22.2.6", "@angular/common": "22.2.6", "@angular/core": "22.2.6" }, "optionalPeers": ["@angular/animations"] }, "sha512-xXSgdnnLLv/3aEC/pqyrUd0xlyYURGZG2HR3sOIN3bsIoctGFvzA5iwt/GEKpIDA1rn+NnKNLK/EKQaPA4YZEw=="],
+
+    "@angular/router": ["@angular/router@22.2.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": "22.2.6", "@angular/core": "22.2.6", "@angular/platform-browser": "22.2.6", "rxjs": "^6.5.3 || ^7.4.0" } }, "sha512-Xs5X2GYKxpC1Z6YFpiHvwBA+/O1myXzhham0XKYFqsGGyEjVW2tskGK3Fq5Ebcaw1OMtsvJY2XAs19zPxf5WsA=="],
 
     "@babel/helper-string-parser": ["@babel/helper-string-parser@8.1.2", "", {}, "sha512-TRz5Z0MgfIfWqwEIq/pCpUpEXQxUt2Ig2ZbxG3SdmhSbHMAFFYGOix0kI4JLV371/TA+qWnQ4xWHPWjojkyRFA=="],
 
@@ -197,6 +241,10 @@
 
     "@neon-rs/load": ["@neon-rs/load@0.0.4", "", {}, "sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw=="],
 
+    "@ngrx/signals": ["@ngrx/signals@22.0.1", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/core": "^22.0.0", "rxjs": "^6.5.3 || ^7.4.0" }, "optionalPeers": ["rxjs"] }, "sha512-R62VsPrnH54LgA3LAqw+GWA9FHii526CH1aqah8aiK1RZocp+3N9rS3g5wrrXU655eVH65jhN4k/k+EFyxO/RA=="],
+
+    "@ngrx/store": ["@ngrx/store@22.0.1", "", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "@angular/core": "^22.0.0", "rxjs": "^6.5.3 || ^7.5.0" } }, "sha512-CWCqqG+qepatkH9HE4+a17x/uyU/sTDO75IQWEntJi0xGTeE++iZH/QUm4MWB7mmb43Y+PnwydI3515DzfINtg=="],
+
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
     "@nodelib/fs.stat": ["@nodelib/fs.stat@2.0.5", "", {}, "sha512-RkhPPp2zrqDAQA/2jNhnztcPAlv64XdhIp7a7454A5ovI7Bukxgt7MX7udwAu3zg1DcpPU0rz3VV1SeaqvY4+A=="],
@@ -271,13 +319,15 @@
 
     "@skaile/provider-registry": ["@skaile/provider-registry@0.1.1", "", { "dependencies": { "yaml": "^2.7.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "ai": "^7.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "ai"] }, "sha512-2g1yrOYxv+Yxp3B3gEbEpamyIm9wdZd+mgFeCnG8c3yBV2bagO4S4lqytFj18AvzL4MreoaDh6cc0FdSK31u4g=="],
 
+    "@skaile/skailify-angular": ["@skaile/skailify-angular@workspace:frontend/angular"],
+
     "@skaile/skailify-example": ["@skaile/skailify-example@workspace:frontend/_example"],
 
     "@skaile/skailify-react": ["@skaile/skailify-react@workspace:frontend/react"],
 
     "@skaile/skailify-vue-tsm": ["@skaile/skailify-vue-tsm@workspace:frontend/vue-tsm"],
 
-    "@skaile/workspaces": ["@skaile/workspaces@10.10.1", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-NcoUqLvf91G6KSjiVufs7+BtvteS1gvGmtb6cKsqonwsc5N6P27Ro6236Qs1DmtX+IYMb5bRYNP1sYrLv1gpPQ=="],
+    "@skaile/workspaces": ["@skaile/workspaces@10.11.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-UY5L3xdFn1Pg4bA9y8r2xPHNqKJsxtfFHAUEDX+oDKpwDdBYW5jS19gtUxb2C+4fe9HwYughuDZHslWSRLxlqg=="],
 
     "@trpc/client": ["@trpc/client@11.28.3", "", { "peerDependencies": { "@trpc/server": "11.28.3", "typescript": ">=5.7.2" } }, "sha512-NnMXBOCVzPMELdQH/X26MhI4u9g83nxWy3apc7UX1beevUk6rEYqfOboqCb/rVoVPu3CBVaPb8PB7AG51oEKvQ=="],
 
@@ -759,6 +809,8 @@
 
     "run-parallel": ["run-parallel@1.2.0", "", { "dependencies": { "queue-microtask": "^1.2.2" } }, "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA=="],
 
+    "rxjs": ["rxjs@7.8.2", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA=="],
+
     "sade": ["sade@1.8.1", "", { "dependencies": { "mri": "^1.1.0" } }, "sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A=="],
 
     "safer-buffer": ["safer-buffer@2.1.2", "", {}, "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="],
@@ -935,9 +987,7 @@
 
     "@quansync/fs/quansync": ["quansync@1.0.0", "", {}, "sha512-5xZacEEufv3HSTPQuchrvV6soaiACMFnq1H8wkVioctoH3TRha9Sz66lOxRwPK/qZj7HPiSveih9yAyh98gvqA=="],
 
-    "@skaile/skailify-react/@skaile/workspaces": ["@skaile/workspaces@10.11.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-UY5L3xdFn1Pg4bA9y8r2xPHNqKJsxtfFHAUEDX+oDKpwDdBYW5jS19gtUxb2C+4fe9HwYughuDZHslWSRLxlqg=="],
-
-    "@skaile/skailify-vue-tsm/@skaile/workspaces": ["@skaile/workspaces@10.11.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-UY5L3xdFn1Pg4bA9y8r2xPHNqKJsxtfFHAUEDX+oDKpwDdBYW5jS19gtUxb2C+4fe9HwYughuDZHslWSRLxlqg=="],
+    "@skaile/skailify-example/@skaile/workspaces": ["@skaile/workspaces@10.10.1", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-NcoUqLvf91G6KSjiVufs7+BtvteS1gvGmtb6cKsqonwsc5N6P27Ro6236Qs1DmtX+IYMb5bRYNP1sYrLv1gpPQ=="],
 
     "@vue-macros/common/local-pkg": ["local-pkg@1.2.1", "", { "dependencies": { "mlly": "^1.7.4", "pkg-types": "^2.3.0", "quansync": "^0.2.11" } }, "sha512-++gUqRDEvcnN6Zhqrr+y/CkVEHhlrR96vZn3nZZPYzMcBUyBtTKzB9NadClFIsIVSsu+3i9tfk/erqy9kAmt7Q=="],
 
