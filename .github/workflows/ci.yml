@@ -70,3 +70,10 @@ jobs:
       java-version: "21"
       java-start-command: ./gradlew --no-daemon --quiet run.example
       mcp-url: http://127.0.0.1:8080/mcp
+
+  react:
+    name: react adapter
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: frontend/react
+      kind: js
