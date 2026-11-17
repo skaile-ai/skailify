@@ -26,6 +26,7 @@ the [`@skaile/workspaces`](https://www.npmjs.com/package/@skaile/workspaces) pac
 | react | `frontend/react/` | Available | React 18/19 apps, router-agnostic: views, exposed state and actions declared with hooks, over the Skaile app channel |
 | vue-tsm | `frontend/vue-tsm/` | Available | Vue 3 apps on the tsm module runtime: views, lists, UIModel forms and view actions over the Skaile app channel |
 | emf-mcp | `backend/emf-mcp/` | Preliminary | EMF/OSGi backends: generic model tools over MCP, an OAuth resource server for per-user MCP access, and the `/.well-known/skailify.json` manifest |
+| jpa-mcp | `backend/jpa-mcp/` | Preliminary | Spring Boot apps with JPA: chosen entities as read-only MCP tools (describe, list, get, query) with Skaile action metadata from annotations |
 
 "Preliminary" means the adapter works but its interface may still change.
 

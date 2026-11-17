@@ -71,6 +71,16 @@ jobs:
       java-start-command: ./gradlew --no-daemon --quiet run.example
       mcp-url: http://127.0.0.1:8080/mcp
 
+  jpa-mcp:
+    name: jpa-mcp adapter
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: backend/jpa-mcp
+      kind: java
+      app-sdk-range: ^10.4.0
+      java-start-command: java -jar example/target/skailify-jpa-mcp-example.jar
+      mcp-url: http://127.0.0.1:8080/mcp
+
   react:
     name: react adapter
     uses: ./.github/workflows/adapter.yml
