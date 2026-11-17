@@ -333,8 +333,16 @@ export function createSkailify(options: SkailifyOptions): Skailify {
    */
   function reportIfChanged(force = false): void {
     if (!app) return;
-    const next = report();
-    const key = JSON.stringify(next);
+    let next = report();
+    let key: string;
+    try {
+      key = JSON.stringify(next);
+    } catch (error) {
+      // a BigInt or a cycle in the view's state: report the view without it, and say why
+      logger.error(`skailify: the state of view ${next.viewId} is not JSON-serialisable`, { message: describe(error) });
+      next = { viewId: next.viewId, title: next.title, state: { error: "state is not JSON-serialisable" } };
+      key = JSON.stringify(next);
+    }
     if (force || key !== lastReport) {
       lastReport = key;
       try {

@@ -394,3 +394,15 @@ test("enabled: false never connects, not even over a transport", async () => {
   expect(client.getSnapshot().status).toEqual({ state: "standalone" });
   expect(gateway.helloCount).toBe(0);
 });
+
+test("a view whose state is not JSON-serialisable is reported with an error state, and the connection comes up", async () => {
+  const g = createFakeGateway();
+  const c = createSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger });
+  c.registerView({ id: "v", state: { big: 1n } });
+  await c.start();
+  expect(c.getSnapshot().status.state).toBe("connected");
+  await g.waitFor((gw) => gw.view.report?.viewId === "v");
+  expect(g.view.report?.state).toEqual({ error: "state is not JSON-serialisable" });
+  await c.close();
+  await g.close();
+});
