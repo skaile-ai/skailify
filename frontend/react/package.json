@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Skailify adapter for React apps: makes their views, state and actions agent-controllable over the Skaile app channel",
