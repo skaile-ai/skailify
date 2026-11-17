@@ -58,3 +58,15 @@ jobs:
     with:
       path: frontend/_example
       kind: js
+
+  # JDK 21: the pinned Fennec snapshot builds are Java 21 class files.
+  emf-mcp:
+    name: emf-mcp adapter
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: backend/emf-mcp
+      kind: java
+      app-sdk-range: ^10.4.0
+      java-version: "21"
+      java-start-command: ./gradlew --no-daemon --quiet run.example
+      mcp-url: http://127.0.0.1:8080/mcp
