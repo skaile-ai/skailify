@@ -21,17 +21,19 @@ the [`@skaile/workspaces`](https://www.npmjs.com/package/@skaile/workspaces) pac
 
 ## Adapters
 
-| Adapter | Folder | Status | What it does |
-|---|---|---|---|
-| react | `frontend/react/` | Available | React 18/19 apps, router-agnostic: views, exposed state and actions declared with hooks, over the Skaile app channel |
-| vue-tsm | `frontend/vue-tsm/` | Available | Vue 3 apps on the tsm module runtime: views, lists, UIModel forms and view actions over the Skaile app channel |
-| emf-mcp | `backend/emf-mcp/` | Preliminary | EMF/OSGi backends: generic model tools over MCP, an OAuth resource server for per-user MCP access, and the `/.well-known/skailify.json` manifest |
+| Adapter | Folder | Package | Status | What it does |
+|---|---|---|---|---|
+| react | `frontend/react/` | [`@skaile/skailify-react`](https://www.npmjs.com/package/@skaile/skailify-react) | Available | React 18/19 apps, router-agnostic: views, exposed state and actions declared with hooks, over the Skaile app channel |
+| vue-tsm | `frontend/vue-tsm/` | [`@skaile/skailify-vue-tsm`](https://www.npmjs.com/package/@skaile/skailify-vue-tsm) | Available | Vue 3 apps on the tsm module runtime: views, lists, UIModel forms and view actions over the Skaile app channel |
+| emf-mcp | `backend/emf-mcp/` | Built from source | Preliminary | EMF/OSGi backends: generic model tools over MCP, an OAuth resource server for per-user MCP access, and the `/.well-known/skailify.json` manifest |
 
 "Preliminary" means the adapter works but its interface may still change.
 
 ## Building
 
-The JavaScript adapters share one [bun](https://bun.sh) workspace rooted here:
+The JavaScript adapters (`frontend/*`, and any JavaScript adapter under `backend/*`) share one
+[bun](https://bun.sh) workspace rooted here, and are published to npm under `@skaile/`; see
+[docs/releasing.md](docs/releasing.md):
 
 ```sh
 bun install

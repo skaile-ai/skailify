@@ -186,6 +186,18 @@ jobs:
           echo "Testing against @skaile/workspaces $installed"
       - name: Test
         run: bun run test
+      # A package that is published to npm must build, and what it would
+      # publish must pass publint. Private packages publish nothing.
+      - name: Package (build and publint)
+        run: |
+          if [ "$(jq -r '.private // false' package.json)" = true ]; then
+            echo "private package: nothing to publish"
+            exit 0
+          fi
+          if jq -e '.scripts.build' package.json > /dev/null; then
+            bun run build
+          fi
+          bunx publint@0.3.25 --strict
       - name: Conformance (runAppConformance)
         run: |
           if ! jq -e '.scripts.conformance' package.json > /dev/null; then

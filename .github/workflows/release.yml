@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Publishes the JavaScript adapters (every non-private package under
+# frontend/* and backend/*) to npm with Changesets. How releasing works, and
+# how to add a new package to it: docs/releasing.md.
+
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".changeset/**"
+      - "frontend/**"
+      - "backend/**"
+      - "package.json"
+      - "bun.lock"
+  # Re-running a failed run replays its original commit, so a fix landed on
+  # main afterwards never gets exercised. Manual dispatch runs at current main.
+  workflow_dispatch:
+
+# Never run two releases at once, and never cancel one in flight: a half-done
+# release leaves the registry and the git tags out of step.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release
+    # workflow_dispatch lets the caller pick any ref; only main may publish.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # push the release tags and create GitHub Releases
+      pull-requests: write # open and update the "Version Packages" pull request
+      id-token: write # npm trusted publishing (OIDC): no NPM_TOKEN
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.12
+
+      # registry-url writes the .npmrc that points npm at npmjs.org, so
+      # `npm publish` can exchange the job's OIDC token for a short-lived
+      # publish credential. That works only for a package that has this
+      # repository and this workflow file (release.yml) as a trusted
+      # publisher on npmjs.com, with direct `npm publish` allowed.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm 11.5.1 or later. Pinned, not @latest, so
+      # the release pipeline changes only when someone bumps it.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11.5.1
+
+      - run: bun install --frozen-lockfile
+
+      # With changesets on main, this opens or updates the "Version Packages"
+      # pull request. Once that is merged (no changesets left), it publishes
+      # every package whose version is not on npm yet, tags it and creates
+      # a GitHub Release. Provenance is attached automatically.
+      - name: Open the release pull request or publish
+        # Pinned to a full commit SHA: this step holds publish credentials.
+        # v1 because v2 needs Changesets CLI v3; bump both together.
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          version: bun run version
+          publish: bun run release
+          title: "chore(repo): version packages"
+          commit: "chore(repo): version packages"
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
