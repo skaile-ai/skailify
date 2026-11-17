@@ -94,8 +94,9 @@ useAgentView({ id: "orders", title: "Orders", state: { filter, shown: rows.lengt
 
 - `id` is stable: a route or screen name, with the record key for a detail (`order/42`).
 - `state` is a small JSON-serialisable summary. It is compared on every render, so keep it small.
-  State that cannot be serialised (a `BigInt`, a cycle) does not break rendering or the connection:
-  the view is reported with an error state in its place, and the error is logged.
+  State that cannot be serialised (a `BigInt`, a cycle), here or in `useAgentState`, breaks neither
+  rendering nor the connection: the agent reads `{ error: "state is not JSON-serialisable" }` in its
+  place, the rest of the answer is unaffected, and the error is logged once.
 - Pass `loading: true` while the view fetches what it shows. The agent waits until it is false before
   it reads the screen; a view that loads data and never says so may be read empty.
 

@@ -406,3 +406,26 @@ test("a view whose state is not JSON-serialisable is reported with an error stat
   await c.close();
   await g.close();
 });
+
+test("get_view_state answers despite a value JSON cannot carry, and the error is logged once", async () => {
+  const errors: string[] = [];
+  const g = createFakeGateway();
+  const c = createSkailify({
+    appId: "kanban",
+    transport: g.transport(),
+    reconnect: false,
+    logger: { ...noopLogger, error: (message: string) => void errors.push(message) },
+  });
+  c.registerView({ id: "v", state: { big: 1n } });
+  c.registerState("good", () => ({ ok: 1 }));
+  c.registerState("bad", () => ({ big: 2n }));
+  await c.start();
+  expect(await g.invoke("app.get_view_state")).toMatchObject({
+    view: { id: "v", state: { error: "state is not JSON-serialisable" } },
+    state: { good: { ok: 1 }, bad: { error: "state is not JSON-serialisable" } },
+  });
+  await g.invoke("app.get_view_state");
+  expect(errors.filter((e) => e.includes("not JSON-serialisable"))).toHaveLength(1);
+  await c.close();
+  await g.close();
+});
