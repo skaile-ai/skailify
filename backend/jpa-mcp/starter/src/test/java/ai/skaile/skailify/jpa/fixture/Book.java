@@ -47,6 +47,9 @@ public class Book {
     @ManyToOne
     Shelf shelf;
 
+    @ManyToOne
+    Publisher publisher;
+
     @OneToMany
     List<Book> related;
 
@@ -61,5 +64,10 @@ public class Book {
         this.tenant = tenant;
         this.author = author;
         this.shelf = shelf;
+    }
+
+    public Book publishedBy(Publisher publisher) {
+        this.publisher = publisher;
+        return this;
     }
 }

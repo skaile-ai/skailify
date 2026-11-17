@@ -26,6 +26,7 @@ public final class ValueCodec {
     /** How a served type appears in JSON, and which filters it takes. */
     public enum Kind {
         STRING("string", null, true, true),
+        CHARACTER("string", null, true, false),
         INTEGER("integer", null, true, false),
         NUMBER("number", null, true, false),
         BOOLEAN("boolean", null, false, false),
@@ -33,7 +34,10 @@ public final class ValueCodec {
         UUID("string", "uuid", false, false),
         DATE("string", "date", true, false),
         TIME("string", "time", true, false),
-        DATE_TIME("string", "date-time", true, false);
+        DATE_TIME("string", "date-time", true, false),
+        // No JSON Schema format: date-time and time require an offset, which a local value has none of.
+        LOCAL_DATE_TIME("string", null, true, false),
+        LOCAL_TIME("string", null, true, false);
 
         final String jsonType;
         final String format;
@@ -63,7 +67,8 @@ public final class ValueCodec {
     /** The kind of a Java type, or {@code null} when it is not served. */
     public static Kind kindOf(Class<?> type) {
         Class<?> t = boxed(type);
-        if (t == String.class || t == Character.class) return Kind.STRING;
+        if (t == String.class) return Kind.STRING;
+        if (t == Character.class) return Kind.CHARACTER;
         if (t == Long.class || t == Integer.class || t == Short.class || t == Byte.class || t == BigInteger.class) {
             return Kind.INTEGER;
         }
@@ -72,8 +77,9 @@ public final class ValueCodec {
         if (t.isEnum()) return Kind.ENUM;
         if (t == UUID.class) return Kind.UUID;
         if (t == LocalDate.class) return Kind.DATE;
-        if (t == LocalTime.class) return Kind.TIME;
-        if (t == LocalDateTime.class || t == Instant.class || t == OffsetDateTime.class || t == ZonedDateTime.class) {
+        if (t == LocalTime.class) return Kind.LOCAL_TIME;
+        if (t == LocalDateTime.class) return Kind.LOCAL_DATE_TIME;
+        if (t == Instant.class || t == OffsetDateTime.class || t == ZonedDateTime.class) {
             return Kind.DATE_TIME;
         }
         return null;
@@ -86,6 +92,8 @@ public final class ValueCodec {
         schema.put("type", kind.jsonType);
         if (kind.format != null) schema.put("format", kind.format);
         if (kind == Kind.ENUM) schema.put("enum", enumNames(boxed(type)));
+        if (kind == Kind.LOCAL_DATE_TIME) schema.put("description", "Local date and time, no offset: 2026-01-31T09:30:00");
+        if (kind == Kind.LOCAL_TIME) schema.put("description", "Local time, no offset: 09:30:00");
         return schema;
     }
 
@@ -169,7 +177,7 @@ public final class ValueCodec {
             if (t == OffsetDateTime.class) return OffsetDateTime.parse(requireString(json, what));
             if (t == ZonedDateTime.class) return ZonedDateTime.parse(requireString(json, what));
         } catch (DateTimeParseException e) {
-            throw new ToolInputException(what + ": expected an ISO-8601 " + kindOf(t).format + ", got \"" + json + "\"");
+            throw new ToolInputException(what + ": expected an ISO-8601 " + t.getSimpleName() + ", got \"" + json + "\"");
         } catch (IllegalArgumentException e) {
             throw new ToolInputException(what + ": " + e.getMessage());
         }
@@ -190,7 +198,18 @@ public final class ValueCodec {
         }
     }
 
+    /** Digits before and after the point a number may have; bounds the work of converting it. */
+    static final int MAX_DIGITS = 64;
+
     private static BigDecimal decimal(Object json, String what) {
+        BigDecimal d = unbounded(json, what);
+        if (d.precision() - d.scale() > MAX_DIGITS || d.scale() > MAX_DIGITS) {
+            throw new ToolInputException(what + ": number out of range");
+        }
+        return d;
+    }
+
+    private static BigDecimal unbounded(Object json, String what) {
         if (json instanceof BigDecimal d) return d;
         if (json instanceof BigInteger i) return new BigDecimal(i);
         if (json instanceof Double || json instanceof Float) {

@@ -121,10 +121,15 @@ public final class EntityQueries {
                 predicates.addAll(conditions(built.cb, built.paths.get(attribute.name()), attribute, condition.getValue()));
             }
             built.query.where(predicates.toArray(Predicate[]::new));
+            List<jakarta.persistence.criteria.Order> order = new ArrayList<>();
             if (orderBy != null) {
                 Path<?> path = built.paths.get(orderBy.name());
-                built.query.orderBy(descending ? built.cb.desc(path) : built.cb.asc(path));
+                order.add(descending ? built.cb.desc(path) : built.cb.asc(path));
             }
+            // The id breaks ties, so paging with offset neither skips nor repeats records.
+            ExposedAttribute id = entity.id();
+            if (id != null && (orderBy == null || !orderBy.id())) order.add(built.cb.asc(built.paths.get(id.name())));
+            if (!order.isEmpty()) built.query.orderBy(order);
             List<Tuple> rows = run(em, built.query, offset, limit + 1);
             List<Map<String, Object>> items = new ArrayList<>();
             for (int i = 0; i < Math.min(limit, rows.size()); i++) items.add(row(entity, rows.get(i)));
@@ -257,7 +262,7 @@ public final class EntityQueries {
     }
 
     private static ExposedAttribute orderBy(ExposedEntity entity, Object value) {
-        if (value == null) return entity.id() != null && entity.id().sortable() ? entity.id() : null;
+        if (value == null) return null;
         if (!(value instanceof String name)) throw new ToolInputException("orderBy: expected an attribute name");
         return entity.sortable().stream()
                 .filter(a -> a.name().equals(name))

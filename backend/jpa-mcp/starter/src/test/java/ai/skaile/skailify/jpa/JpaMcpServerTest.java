@@ -90,7 +90,9 @@ class JpaMcpServerTest {
         assertThat(tools().keySet())
                 .containsExactlyInAnyOrder(
                         "describe_model", "list_author", "get_author", "query_author",
-                        "list_book", "get_book", "query_book");
+                        "list_book", "get_book", "query_book",
+                        // Its id is hidden, so it has no get tool.
+                        "list_publisher", "query_publisher");
     }
 
     @Test
@@ -127,7 +129,8 @@ class JpaMcpServerTest {
         Map<String, Object> book = entities.stream().filter(e -> e.get("name").equals("book")).findFirst().orElseThrow();
         List<String> attributes = ((List<Map<String, Object>>) book.get("attributes"))
                 .stream().map(a -> (String) a.get("name")).toList();
-        // cover (byte[]), shelf (not exposed) and related (a collection) are left out; id comes first.
+        // cover (byte[]), shelf (not exposed), publisher (hidden id) and related (a collection) are left
+        // out; id comes first.
         assertThat(attributes).containsExactly("id", "author", "genre", "price", "published", "tenant", "title");
         Map<String, Object> author = entities.stream().filter(e -> e.get("name").equals("author")).findFirst().orElseThrow();
         assertThat(author.toString()).doesNotContain("email");
@@ -151,7 +154,8 @@ class JpaMcpServerTest {
         assertThat(book.get("genre")).isEqualTo("NOVEL");
         assertThat(book.get("published")).isEqualTo("2020-01-15");
         assertThat(book.get("author")).isEqualTo(Map.of("entity", "author", "id", 1));
-        assertThat(book).doesNotContainKeys("shelf", "cover", "related");
+        assertThat(book).doesNotContainKeys("shelf", "cover", "related", "publisher");
+        assertThat(book.toString()).doesNotContain("REG-0001");
     }
 
     @Test
@@ -181,6 +185,14 @@ class JpaMcpServerTest {
     }
 
     @Test
+    void tiesAreBrokenByIdSoPagesAreStable() {
+        Map<String, Object> page = structured(call("query_book", Map.of("orderBy", "tenant", "direction", "desc", "limit", 3)));
+        assertThat(items(page)).extracting(i -> i.get("id")).containsExactly(3, 4, 1);
+        Map<String, Object> next = structured(call("query_book", Map.of("orderBy", "tenant", "direction", "desc", "offset", 3)));
+        assertThat(items(next)).extracting(i -> i.get("id")).containsExactly(2);
+    }
+
+    @Test
     void queryOnAReferenceMatchesTheReferencedId() {
         Map<String, Object> page = structured(call("query_book", Map.of("where", Map.of("author", 2))));
         assertThat(items(page)).extracting(i -> i.get("id")).containsExactly(3);
@@ -192,10 +204,11 @@ class JpaMcpServerTest {
     void textMatchesIgnoreCaseAndTreatWildcardsLiterally() {
         Map<String, Object> page = structured(call("query_book", Map.of("where", Map.of("title", Map.of("contains", "NOVEL")))));
         assertThat(items(page)).extracting(i -> i.get("id")).containsExactly(1);
-        Map<String, Object> literal = structured(call("query_author", Map.of("where", Map.of("name", Map.of("contains", "100%")))));
-        assertThat(items(literal)).extracting(i -> i.get("id")).containsExactly(2);
-        Map<String, Object> none = structured(call("query_author", Map.of("where", Map.of("name", Map.of("contains", "e_N")))));
-        assertThat(items(none)).isEmpty();
+        // Unescaped, "%" would match every author and "a_n" would match "Ann".
+        Map<String, Object> percent = structured(call("query_author", Map.of("where", Map.of("name", Map.of("contains", "%")))));
+        assertThat(items(percent)).extracting(i -> i.get("id")).containsExactly(2);
+        Map<String, Object> underscore = structured(call("query_author", Map.of("where", Map.of("name", Map.of("contains", "a_n")))));
+        assertThat(items(underscore)).isEmpty();
     }
 
     @Test
@@ -235,6 +248,9 @@ class JpaMcpServerTest {
                 .hasMessageContaining("unknown argument");
         assertThatThrownBy(() -> queries.get(book, Map.of("id", "x")))
                 .hasMessageContaining("id: expected a number");
+        // Refused before it is expanded to an integer of a billion digits.
+        assertThatThrownBy(() -> queries.get(book, Map.of("id", "1e999999999")))
+                .hasMessageContaining("out of range");
     }
 
     @Test

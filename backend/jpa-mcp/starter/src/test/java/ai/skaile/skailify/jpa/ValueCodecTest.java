@@ -40,6 +40,10 @@ class ValueCodecTest {
                 .isInstanceOf(ToolInputException.class).hasMessageContaining("[RED, GREEN]");
         assertThatThrownBy(() -> ValueCodec.fromJson("yesterday", Instant.class, "t"))
                 .isInstanceOf(ToolInputException.class).hasMessageContaining("ISO-8601");
+        assertThatThrownBy(() -> ValueCodec.fromJson("1e999999999", Long.class, "n"))
+                .isInstanceOf(ToolInputException.class).hasMessageContaining("out of range");
+        assertThatThrownBy(() -> ValueCodec.fromJson("1e-999999999", BigDecimal.class, "n"))
+                .isInstanceOf(ToolInputException.class).hasMessageContaining("out of range");
         assertThatThrownBy(() -> ValueCodec.fromJson(null, String.class, "s"))
                 .isInstanceOf(ToolInputException.class).hasMessageContaining("isNull");
     }
@@ -49,6 +53,8 @@ class ValueCodecTest {
         assertThat(ValueCodec.kindOf(byte[].class)).isNull();
         assertThat(ValueCodec.kindOf(Object.class)).isNull();
         assertThat(ValueCodec.kindOf(int.class)).isEqualTo(ValueCodec.Kind.INTEGER);
+        assertThat(ValueCodec.kindOf(char.class).text()).isFalse();
+        assertThat(ValueCodec.schemaOf(java.time.LocalDateTime.class)).doesNotContainKey("format");
     }
 
     @Test

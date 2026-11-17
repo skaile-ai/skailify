@@ -50,7 +50,9 @@ public class FixtureApp {
             em.persist(ann);
             em.persist(bo);
             em.persist(shelf);
-            em.persist(new Book(1L, "The First Novel", Book.Genre.NOVEL, "12.50", LocalDate.of(2020, 1, 15), "t1", ann, shelf));
+            Publisher house = new Publisher("REG-0001", "House");
+            em.persist(house);
+            em.persist(new Book(1L, "The First Novel", Book.Genre.NOVEL, "12.50", LocalDate.of(2020, 1, 15), "t1", ann, shelf).publishedBy(house));
             em.persist(new Book(2L, "Second Thoughts", Book.Genre.ESSAY, "8.00", LocalDate.of(2021, 6, 1), "t1", ann, null));
             em.persist(new Book(3L, "Poems", Book.Genre.POETRY, "15.00", LocalDate.of(2022, 3, 10), "t2", bo, null));
             em.persist(new Book(4L, "Untitled", Book.Genre.NOVEL, null, null, "t2", null, null));

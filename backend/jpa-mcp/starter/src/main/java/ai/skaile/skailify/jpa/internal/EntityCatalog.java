@@ -144,6 +144,10 @@ public final class EntityCatalog {
             return null;
         }
         SingularAttribute<?, ?> targetId = target.getId(target.getIdType().getJavaType());
+        if (hidden(target.getJavaType(), targetId)) {
+            skipped.add(attribute.getName() + " (references " + target.getName() + ", whose id is hidden)");
+            return null;
+        }
         Kind kind = ValueCodec.kindOf(targetId.getJavaType());
         if (kind == null) {
             skipped.add(attribute.getName() + " (references an id of an unsupported type)");

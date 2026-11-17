@@ -43,11 +43,12 @@ and denies nothing.
 ### What a record shows
 
 - Basic attributes of these types: strings, characters, whole and decimal numbers, booleans,
-  enums (by constant name), `UUID`, and `java.time` dates, times and timestamps (ISO-8601 strings).
+  enums (by constant name), `UUID`, and `java.time` dates, times and timestamps as ISO-8601 strings
+  (`LocalDateTime` and `LocalTime` without an offset, `2026-01-31T09:30:00`).
 - To-one references (`@ManyToOne`, `@OneToOne`) to another exposed entity, as
   `{"entity": "customer", "id": 3}`.
-- Not shown: attributes marked `@SkailifyHidden`, references to entities that are not exposed,
-  collections, embedded values, and attributes of other types (`byte[]`, LOB handles, …). The
+- Not shown: attributes marked `@SkailifyHidden`, references to entities that are not exposed or
+  whose id is hidden, collections, embedded values, and attributes of other types (`byte[]`, LOB handles, …). The
   startup log lists what it left out per entity.
 
 ### Queries
@@ -62,25 +63,31 @@ and denies nothing.
 |---|---|
 | `eq`, `ne`, `in` (1 to 100 values), `isNull` | all |
 | `lt`, `lte`, `gt`, `gte` (and sorting) | numbers, strings, dates and times |
-| `contains`, `startsWith` (case-insensitive, `%` and `_` taken literally) | strings |
+| `contains`, `startsWith` (case-insensitive, `%` and `_` taken literally) | strings (not single characters) |
 
 Queries are built with the JPA Criteria API from the metamodel and select only the served
 attributes, in an entity manager of their own: no JPQL is assembled from input, no entity is loaded
 into the app's persistence context, and nothing is flushed. Pages hold `skailify.mcp.default-limit`
 records (50) unless the call asks for up to `skailify.mcp.max-limit` (200); a result says `hasMore`.
+Records are sorted by `orderBy` and then by id, so paging with `offset` neither skips nor repeats a
+record while the data does not change. An entity without a single served id has no defined order,
+and paging through it is not stable.
 
 ## Access
 
 - **Authentication is the app's.** Protect the endpoint with Spring Security, for example as an
   OAuth2 resource server. The starter refuses to start in an app without a Spring Security filter
   chain unless `skailify.mcp.allow-unauthenticated=true`, which is for local development only and
-  logs a warning.
+  logs a warning. The check only sees that a chain exists; make sure it requires authentication on
+  the endpoint's path (a `permitAll` rule there would pass the check).
 - **Behind a Skaile preview** the proxy drops `Authorization`. The starter presents
   `X-Skaile-Preview-Authorization` as `Authorization` to the app's filters when `Authorization` is
   absent (`skailify.mcp.preview-authorization`, on by default).
 - **Row-level restrictions** come from `SkailifyReadFilter` beans: each returns a predicate per
   entity that every `list`, `get` and `query` call adds. Tool calls run on the request's thread, so a
-  filter can read the caller from the security context.
+  filter can read the caller from the security context. A filter restricts the entity being read,
+  not the records it references: a reference still shows the id of a record the filter hides from
+  the caller, and `where` can match on it.
 
 ## Configuration
 
@@ -115,7 +122,7 @@ java -jar example/target/skailify-jpa-mcp-example.jar
 
 starts the example, a small shop on in-memory H2 (customers, products and orders exposed, an audit
 log not exposed), at `http://127.0.0.1:8080/mcp`, without authentication and on loopback only. CI
-runs `skailify-check-mcp` against it:
+runs `skailify-check-mcp` against it, and it passes with `--strict` too:
 
 ```sh
 npx --package @skaile/workspaces -- skailify-check-mcp --strict http://127.0.0.1:8080/mcp

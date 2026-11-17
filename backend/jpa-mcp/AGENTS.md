@@ -106,8 +106,9 @@ public class PurchaseOrder {
   (the default is `OWNER_PRIVATE`). See [MCP conventions](../../docs/mcp-conventions.md#action-metadata-_metaaiskaileaction).
 - Mark every secret or personal attribute that the agent does not need `@SkailifyHidden` (password
   hashes, tokens, internal notes). Put it on the field, or on the getter for property access.
-- A reference to an entity that is not exposed is left out, so exposing one entity never reveals
-  another.
+- A reference to an entity that is not exposed, or whose id is hidden, is left out. A reference to
+  an exposed entity shows that record's id, even when a `SkailifyReadFilter` hides the record from
+  the caller (Step 5).
 
 The startup log lists, per entity, the attributes it left out and why.
 
@@ -123,14 +124,16 @@ Protect the endpoint with the app's Spring Security, for example as an OAuth2 re
 `skailify.mcp.path` path and answers `401` with a `WWW-Authenticate: Bearer` challenge (see
 [MCP conventions](../../docs/mcp-conventions.md#authentication)).
 
-- The starter refuses to start when the app has no Spring Security filter chain. Only for local
+- The starter refuses to start when the app has no Spring Security filter chain. It does not check
+  what the chain requires, so make sure the endpoint's path needs authentication. Only for local
   development, set `skailify.mcp.allow-unauthenticated=true`; it logs a warning, and you should
   also bind the server to loopback (`server.address=127.0.0.1`).
 - Behind a Skaile preview, the token arrives in `X-Skaile-Preview-Authorization`. The starter
   presents it as `Authorization` to the app's filters when `Authorization` is absent; when both are
   present, `Authorization` wins. Turn it off with `skailify.mcp.preview-authorization=false`.
 - To restrict rows per caller, add a `SkailifyReadFilter` bean. Tool calls run on the request's
-  thread, so it can read the caller from `SecurityContextHolder`:
+  thread, so it can read the caller from `SecurityContextHolder`. A filter restricts the entity
+  being read; references from other entities still show the ids of the records it hides:
 
   ```java
   @Bean
