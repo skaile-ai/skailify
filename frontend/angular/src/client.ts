@@ -123,6 +123,12 @@ export interface SkailifyOptions {
    * waits for it, then for the next frame. `provideSkailify` sets it.
    */
   rendered?: () => Promise<unknown>;
+  /**
+   * Where code runs, for a framework that tracks async work (Angular's zone.js). The connection and the settle timers
+   * run `outside`, so they never keep the app from becoming stable; the handlers run `inside`, so the app sees what
+   * they change. `provideSkailify` sets it from `NgZone`.
+   */
+  zone?: { inside<T>(fn: () => T): T; outside<T>(fn: () => T): T };
   /** Entries the activity log keeps; default 40 */
   activityLimit?: number;
   /**
@@ -211,6 +217,19 @@ function afterRender(): Promise<void> {
   });
 }
 
+/** What stands in for state that JSON cannot carry (a BigInt, a cycle) */
+export const NOT_SERIALISABLE = { error: "state is not JSON-serialisable" } as const;
+
+/** The value itself when JSON can carry it, else {@link NOT_SERIALISABLE}: one bad value never fails a whole answer. */
+export function jsonSafe(value: unknown): unknown {
+  try {
+    JSON.stringify(value);
+    return value;
+  } catch {
+    return NOT_SERIALISABLE;
+  }
+}
+
 /** How long to wait for an animation frame before treating the page as rendered */
 const RENDER_FALLBACK_MS = 50;
 
@@ -248,6 +267,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       }
     },
   };
+  const zone = options.zone ?? { inside: <T>(fn: () => T) => fn(), outside: <T>(fn: () => T) => fn() };
   const settleTimeout = Math.min(options.settleTimeoutMs ?? 3000, MAX_WAIT_MS);
   const activityLimit = options.activityLimit ?? 40;
   const fullName = (name: string) => `app.${name}`;
@@ -309,7 +329,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     const out: Record<string, unknown> = {};
     for (const { name, read } of states.values()) {
       try {
-        out[name] = read();
+        out[name] = jsonSafe(read());
       } catch (error) {
         out[name] = { error: describe(error) };
       }
@@ -331,6 +351,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   // The SDK keeps the last report and phase while disconnected and replays them on every bind, so they are sent
   // whether or not a session is bound: what the platform sees after a reconnect is then what is true now.
   let lastReport = "";
+  const unserialisableLogged = new Set<string>();
   let sentLoading = false;
   /**
    * Reports the view when it changed (always with `force`), and says `loading` when the app becomes busy and `settled`
@@ -343,9 +364,12 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     try {
       key = JSON.stringify(next);
     } catch (error) {
-      // a BigInt or a cycle in the view's state: report the view without it, and say why
-      logger.error(`skailify: the state of view ${next.viewId} is not JSON-serialisable`, { message: describe(error) });
-      next = { viewId: next.viewId, title: next.title, state: { error: "state is not JSON-serialisable" } };
+      // a BigInt or a cycle in the view's state: report the view without it, and say why (once per view)
+      if (!unserialisableLogged.has(next.viewId)) {
+        unserialisableLogged.add(next.viewId);
+        logger.error(`skailify: the state of view ${next.viewId} is not JSON-serialisable`, { message: describe(error) });
+      }
+      next = { viewId: next.viewId, title: next.title, state: NOT_SERIALISABLE };
       key = JSON.stringify(next);
     }
     if (force || key !== lastReport) {
@@ -368,7 +392,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
 
   function settle(timeoutMs = settleTimeout): Promise<boolean> {
     const limit = Math.min(Math.max(timeoutMs, 0), MAX_WAIT_MS);
-    return new Promise<boolean>((resolve) => {
+    return zone.outside(() => new Promise<boolean>((resolve) => {
       let finished = false;
       let rendered = false;
       const finish = (settled: boolean) => {
@@ -395,7 +419,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
           rendered = true;
           check();
         });
-    });
+    }));
   }
 
   // ── Capabilities ──────────────────────────────────────────────────────────
@@ -427,7 +451,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
             app?.loading(action.name);
           }
           try {
-            const result = await action.handler(args, ctx);
+            const result = await zone.inside(() => action.handler(args, ctx));
             log({ direction: "out", label: action.name, detail: summarize(result) });
             return result;
           } catch (error) {
@@ -551,7 +575,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     app: null,
     start() {
       if (!started) {
-        started = run().catch((error: unknown) => {
+        started = zone.outside(run).catch((error: unknown) => {
           if (closed) return;
           const message = describe(error);
           logger.error("skailify: could not connect to Skaile", { message });

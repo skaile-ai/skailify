@@ -54,9 +54,11 @@ on its own. The adapter sends the frames for you:
   still running;
 - `settled` whenever a view stops loading and nothing else is running.
 
-This works the same with zoneless change detection and with zone.js. Under zone.js, an app with a
-timer that never stops never becomes stable. Settling then gives up on stability after a second and
-looks at the screen anyway.
+This works with zoneless change detection and with zone.js. Under zone.js, the adapter keeps its
+connection and its own timers outside the Angular zone, so they never hold the app back from
+becoming stable, and it runs the handlers inside the zone, so the app renders what they change. An
+app with a timer of its own that never stops never becomes stable: settling then gives up on
+stability after a second and looks at the screen anyway.
 
 While disconnected, the adapter keeps both up to date, and the SDK replays them on reconnect. The view
 on screen is the innermost one: when one view contains another, the inner one counts.
@@ -150,7 +152,9 @@ provideSkailifyStore({
 ```
 
 The name comes from the action's type (`[Board] Remove Card` becomes `board.remove_card`) unless you
-give one. Only the actions you list are offered. `exposeStore(config)` does the same for as long as a
+give one. Only the actions you list are offered. Selectors may be typed on the app's own root state.
+Creators made with `props<...>()` (or without props) are supported; function creators
+(`createAction(type, (a, b) => ...)`) are not. `exposeStore(config)` does the same for as long as a
 component or service lives.
 
 ### NgRx SignalStore
@@ -172,7 +176,9 @@ export class BoardComponent {
 
 `get_view_state` shows the store's whole state under `filter`; pass `state: (store) => ...` for a
 smaller projection, or `state: false`. `args` passes input keys as positional arguments; without it,
-the method gets the input object as its single argument.
+the method gets the input object as its single argument. A method that returns data answers the
+agent with it; one that returns nothing, or a handle such as an `rxMethod`'s, answers
+`{ called: "<method>" }`.
 
 ## Example
 
@@ -191,7 +197,14 @@ The tests drive it through the app SDK's fake gateway.
   the conformance kit.
 - CI runs the tests and the conformance checks with Angular 22 against the lowest and the latest
   version in that range (10.4.0 and 10.11.0 today).
-- Angular 20.0 with NgRx 20.0 and SDK 10.4.0, and zone.js change detection, were tested by hand.
+- Angular 20.0 with NgRx 20.0 and SDK 10.4.0 were tested by hand.
+- zone.js was tested by hand in an Angular CLI app over a real WebSocket: an agent's call settles in
+  milliseconds, and a handler's change to a plain field is rendered. (The unit tests run on bun,
+  whose native `async`/`await` zone.js cannot follow; they check only that the adapter uses `NgZone`
+  as described.)
+- The package ships TypeScript sources, which the Angular CLI and Vitest compile. Jest, which does
+  not transform `node_modules`, needs `transformIgnorePatterns` to let `@skaile/skailify-angular`
+  through.
 
 ## Development
 

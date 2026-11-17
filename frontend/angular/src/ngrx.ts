@@ -34,8 +34,12 @@ import type { AgentAction } from "./client";
 // any: a creator takes whatever props its props() declare
 export type StoreActionCreator = ((...props: any[]) => Action) & { readonly type: string };
 
-/** The props an action creator takes: `{}` for one without. */
-export type PropsOf<C> = C extends (props: infer P) => Action ? P : Record<string, never>;
+/** The props an action creator takes; `void` for one without (`createAction(type)`, `emptyProps()`). */
+export type PropsOf<C> = C extends () => Action ? void : C extends (props: infer P) => Action ? P : never;
+
+/** The app's store, whatever its root state type: selectors typed on an `AppState` interface work with it. */
+// any: an app's root state is its own interface, which `object` would reject under strictFunctionTypes
+export type AnyStore = Store<any>;
 
 /**
  * How the agent sees one store action: everything an agent action declares but the handler, with the name optional.
@@ -46,16 +50,17 @@ export type StoreActionOptions<P = unknown> = Omit<AgentAction, "handler" | "nam
   name?: string;
   /**
    * The action's props, as a Zod schema. Required when the creator takes props: NgRx keeps no runtime schema of them.
-   * The parsed input is passed to the creator as its props.
+   * The parsed input is passed to the creator as its props. Not allowed for a creator without props. Only creators
+   * made with `props<...>()` are supported, not function creators (`createAction(type, (a, b) => ...)`).
    */
-  input?: z.ZodType<P>;
+  input?: [P] extends [void] ? undefined : z.ZodType<P>;
   /**
    * Checked before the dispatch: throw an `Error` the agent can act on (`no card 42`) to refuse the call. Reducers
    * cannot refuse an action, so check here what would make it a no-op. Read state with `store.selectSignal(selector)()`.
    */
-  guard?: (props: P, store: Store) => void;
+  guard?: (props: P, store: AnyStore) => void;
   /** What the agent gets back; default `{ dispatched: "<type>" }`. Called after the dispatch, so selectors see the new state. */
-  result?: (props: P, store: Store) => unknown;
+  result?: (props: P, store: AnyStore) => unknown;
 };
 
 /** A store action ready for {@link exposeStore}. */
@@ -105,7 +110,8 @@ export interface ExposeStoreConfig {
   /** The actions the agent may dispatch */
   actions?: readonly StoreAction[];
   /** Selectors whose results `get_view_state` returns, by name. Keep them small: ids and labels, not whole records. */
-  state?: Record<string, Selector<object, unknown>>;
+  // any: selectors are typed on the app's own root state
+  state?: Record<string, Selector<any, unknown>>;
 }
 
 /**
@@ -114,7 +120,7 @@ export interface ExposeStoreConfig {
  */
 export function exposeStore(config: ExposeStoreConfig, options?: InjectOptions): void {
   const client = injectSkailify(options);
-  const store = options?.injector ? options.injector.get(Store) : inject(Store);
+  const store: AnyStore = options?.injector ? options.injector.get(Store) : inject(Store);
   const removers: Array<() => void> = [];
   for (const [name, selector] of Object.entries(config.state ?? {})) {
     const value: Signal<unknown> = store.selectSignal(selector);

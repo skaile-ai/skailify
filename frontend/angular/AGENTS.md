@@ -108,7 +108,8 @@ constructor() {
 - Pass a function that reads signals: it is re-read in an `effect` whenever they change. For a
   component without signals, pass a plain object.
 - `state` is a small JSON-serialisable summary. State that cannot be serialised (a `BigInt`, a
-  cycle) is replaced in the report by an error, and the error is logged.
+  cycle), here or in `injectAgentState`, is replaced by `{ error: "state is not JSON-serialisable" }`
+  in what the agent reads; the rest of the answer is unaffected, and the error is logged once.
 - Pass `loading: true` while the view fetches what it shows. The agent waits until it is false before
   it reads the screen; a view that loads data and never says so may be read empty.
 
@@ -134,9 +135,11 @@ provideSkailify({
 });
 ```
 
-Each `path` is the route's path as written in the router config. `:name` segments are filled from
-the parameters, and the other parameters become query parameters. A navigation that a guard cancels
-comes back to the agent as an error.
+Each `path` is the view's full path from the root: for a child route, join its parents' paths
+(`orders` with a child `:orderId` is `orders/:orderId`). `:name` segments are filled from the
+parameters, and the other parameters become query parameters. A navigation that a guard cancels
+comes back to the agent as an error; showing the view already on screen is not one. Of several
+matching views, the most specific (fewest `:name` segments) is the one on screen.
 
 ## Step 4: actions that change data
 
@@ -162,7 +165,9 @@ provideSkailifyStore({
 ```
 
 Add it after `provideStore(...)` and `provideSkailify(...)`. For actions that only make sense on one
-screen, call `exposeStore({...})` in that component's constructor instead.
+screen, call `exposeStore({...})` in that component's constructor instead. Selectors may be typed
+on the app's root state. Only creators made with `props<...>()` or without props are supported, not
+function creators.
 
 **With an NgRx SignalStore.** Offer its methods:
 
@@ -225,8 +230,13 @@ Run each of these, and report exactly which ones you ran and what happened.
   component or service lives. A server-side connection, so a backend can offer them without an open
   tab, is planned on the platform side.
 - Settling waits for Angular to become stable (at most a second), the next frame, and every view to
-  stop loading. Data an app fetches without telling `injectAgentView` is not waited for.
+  stop loading. Data an app fetches without telling `injectAgentView` is not waited for. The
+  adapter's connection and timers run outside the Angular zone and the handlers inside it, so with
+  zone.js a call settles as soon as the app has rendered.
 - An NgRx effect that runs after the dispatch (an HTTP call) is not awaited. Mark the view
   `loading` while it runs, so the agent waits for it.
-- Under zone.js, an app with a timer that never stops never becomes stable. Every effect then waits
-  the full second before it settles.
+- Under zone.js, an app with a timer of its own that never stops (a polling `setInterval` started in
+  the zone) never becomes stable. Every call then waits the full second before it settles; start
+  such timers with `NgZone.runOutsideAngular`.
+- The package ships TypeScript sources. If the app's unit tests run on Jest, add
+  `@skaile/skailify-angular` to the exceptions in `transformIgnorePatterns`.

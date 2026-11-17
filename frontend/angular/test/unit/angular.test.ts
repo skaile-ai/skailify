@@ -6,16 +6,22 @@ import {
   Component,
   type EnvironmentProviders,
   Input,
+  inject,
+  NgZone,
   type Provider,
   provideZonelessChangeDetection,
   signal,
   type Type,
+  ɵNoopNgZone as NoopNgZone,
 } from "@angular/core";
 import { type ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter, Router, RouterOutlet } from "@angular/router";
-import { noopLogger } from "@skaile/workspaces/app-sdk";
 import { createFakeGateway, type FakeGateway } from "@skaile/workspaces/app-sdk/testing";
-import { createAction, props, provideStore } from "@ngrx/store";
+import { type AppLogger, noopLogger } from "@skaile/workspaces/app-sdk";
+import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
+import { rxMethod } from "@ngrx/signals/rxjs-interop";
+import { createAction, createSelector, props, provideStore } from "@ngrx/store";
+import { tap } from "rxjs";
 import * as z from "zod";
 import {
   injectAgentAction,
@@ -26,6 +32,7 @@ import {
   type Skailify,
 } from "../../src/index.ts";
 import { actionName, exposeStore, storeAction } from "../../src/ngrx.ts";
+import { exposeSignalStore } from "../../src/ngrx-signals.ts";
 import { routerNavigation } from "../../src/router.ts";
 import { KanbanAppComponent, kanbanProviders } from "../kanban/kanban.app.ts";
 
@@ -244,11 +251,23 @@ class UnserialisableComponent {
   }
 }
 
-test("view state that is not JSON-serialisable does not break rendering, and the report says why", async () => {
-  const { el, gateway } = await mount(UnserialisableComponent);
+test("state that is not JSON-serialisable breaks neither rendering nor get_view_state, and is logged once", async () => {
+  const errors: string[] = [];
+  const logger: AppLogger = { ...noopLogger, error: (message: string) => void errors.push(message) };
+  const { el, gateway, client } = await mount(UnserialisableComponent, (g) => [
+    provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger }),
+  ]);
+  client.registerState("good", () => ({ ok: 1 }));
+  client.registerState("bad", () => ({ big: 2n }));
   await gateway.waitFor((g) => g.view.report?.viewId === "v");
   expect(gateway.view.report?.state).toEqual({ error: "state is not JSON-serialisable" });
   expect(el.textContent).toBe("still rendered");
+  expect(await gateway.invoke("app.get_view_state")).toMatchObject({
+    view: { id: "v", state: { error: "state is not JSON-serialisable" } },
+    state: { good: { ok: 1 }, bad: { error: "state is not JSON-serialisable" } },
+  });
+  await gateway.invoke("app.get_view_state");
+  expect(errors.filter((e) => e.includes("not JSON-serialisable"))).toHaveLength(1);
 });
 
 @Component({ selector: "t-orders", template: `<p>orders</p>` })
@@ -302,6 +321,7 @@ const routedProviders = (g: FakeGateway) => [
     { path: "", component: PageComponent },
     { path: "cards/:cardId", component: PageComponent },
     { path: "locked", component: PageComponent, canActivate: [() => false] },
+    { path: "cards/new", component: PageComponent },
   ]),
   provideSkailify({
     appId: "kanban",
@@ -312,6 +332,7 @@ const routedProviders = (g: FakeGateway) => [
       { id: "board", title: "Board", path: "" },
       { id: "card", title: "Card", path: "cards/:cardId", menu: false, params: { cardId: "the card to open" } },
       { id: "locked", title: "Locked", path: "locked" },
+      { id: "new-card", title: "New card", path: "cards/new" },
     ]),
   }),
 ];
@@ -326,6 +347,7 @@ test("routerNavigation lists the views and navigates the Router, filling path an
       { id: "board", title: "Board" },
       { id: "card", title: "Card", menu: false, params: { cardId: "the card to open" } },
       { id: "locked", title: "Locked" },
+      { id: "new-card", title: "New card" },
     ],
   });
 
@@ -337,10 +359,19 @@ test("routerNavigation lists the views and navigates the Router, filling path an
   expect(shown).toMatchObject({ view: { id: "card" }, settled: true });
 
   expect(await gateway.invoke("app.navigate", { view: "card" })).toEqual({ error: "view card needs cardId" });
+  // the view already on screen: not an error
+  expect(await gateway.invoke("app.navigate", { view: "card", params: { cardId: "card 7", tab: "notes" } })).toMatchObject({
+    view: { id: "card" },
+  });
+  // the most specific view wins, whatever the order; matrix params do not hide a match
+  await router.navigateByUrl("/cards/new");
+  expect(TestBed.inject(SKAILIFY).currentView()?.id).toBe("new-card");
+  await router.navigateByUrl("/cards/7;tab=notes");
+  expect(TestBed.inject(SKAILIFY).currentView()?.id).toBe("card");
   expect(await gateway.invoke("app.navigate", { view: "locked" })).toEqual({
     error: "navigation to /locked was cancelled (a guard, or a newer navigation)",
   });
-  expect(await gateway.invoke("app.navigate", { view: "nope" })).toEqual({ error: "no view nope; views: board, card, locked" });
+  expect(await gateway.invoke("app.navigate", { view: "nope" })).toEqual({ error: "no view nope; views: board, card, locked, new-card" });
 });
 
 test("store action names come from the action's type", () => {
@@ -359,3 +390,109 @@ test("a store action whose creator takes props needs an input schema", () => {
   storeAction(withProps, { description: "Do.", input: z.object({ id: z.number() }) });
 });
 
+const RxStore = signalStore(
+  withState({ seen: [] as string[] }),
+  withMethods((store) => ({
+    track: rxMethod<string>(tap((id) => patchState(store, { seen: [...store.seen(), id] }))),
+    count: () => ({ seen: store.seen().length }),
+  })),
+);
+
+@Component({ selector: "t-rx", providers: [RxStore], template: `<p>rx</p>` })
+class RxComponent {
+  constructor() {
+    exposeSignalStore(inject(RxStore), {
+      name: "rx",
+      methods: {
+        track: { description: "Track an id.", input: z.object({ id: z.string() }), args: ["id"] },
+        count: { description: "Count.", kind: "query" },
+      },
+    });
+  }
+}
+
+test("an rxMethod answers { called }, a method returning data answers the data", async () => {
+  const { gateway } = await mount(RxComponent);
+  await gateway.waitFor((g) => g.capabilities.has("app.rx.track"));
+  expect(await gateway.invoke("app.rx.track", { id: "a" })).toEqual({ called: "track" });
+  expect(await gateway.invoke("app.rx.count")).toEqual({ seen: 1 });
+  expect((await gateway.invoke("app.get_view_state")) as object).toMatchObject({ state: { rx: { seen: ["a"] } } });
+});
+
+test("args without an input schema are refused at registration", () => {
+  TestBed.configureTestingModule({
+    providers: [provideZonelessChangeDetection(), provideSkailify({ appId: "kanban", enabled: false, logger: noopLogger })],
+  });
+  const store = TestBed.runInInjectionContext(() => new (signalStore(withMethods(() => ({ go: (_x: string) => undefined }))))());
+  expect(() =>
+    TestBed.runInInjectionContext(() => exposeSignalStore(store, { name: "s", methods: { go: { description: "Go.", args: ["x"] } } })),
+  ).toThrow("names args but has no input schema");
+});
+
+interface AppState {
+  orders: { ids: string[] };
+}
+const selectOrderIds = createSelector(
+  (s: AppState) => s.orders,
+  (o) => o.ids,
+);
+
+@Component({ selector: "t-typed", template: `<p>typed</p>` })
+class TypedStateComponent {
+  constructor() {
+    exposeStore({
+      state: { ids: selectOrderIds }, // typed on the app's root state
+      actions: [
+        storeAction(createAction("[Orders] Approve", props<{ id: string }>()), {
+          description: "Approve.",
+          input: z.object({ id: z.string() }),
+          guard: ({ id }, store) => {
+            if (!store.selectSignal(selectOrderIds)().includes(id)) throw new Error(`no order ${id}`);
+          },
+        }),
+      ],
+    });
+  }
+}
+
+test("selectors typed on the app's root state work for state and in guards", async () => {
+  const { gateway } = await mount(TypedStateComponent, (g) => [
+    provideStore({ orders: (s: { ids: string[] } = { ids: ["o1"] }) => s }),
+    provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger }),
+  ]);
+  await gateway.waitFor((g) => g.capabilities.has("app.orders.approve"));
+  expect(await gateway.invoke("app.orders.approve", { id: "o2" })).toEqual({ error: "no order o2" });
+  expect(await gateway.invoke("app.orders.approve", { id: "o1" })).toEqual({ dispatched: "[Orders] Approve" });
+  expect((await gateway.invoke("app.get_view_state")) as object).toMatchObject({ state: { ids: ["o1"] } });
+});
+
+test("a creator without props takes no input schema (compile time)", () => {
+  const reset = createAction("[X] Reset");
+  // @ts-expect-error: the creator has no props, so an input schema would be dropped
+  storeAction(reset, { description: "Reset.", input: z.object({ anything: z.number() }) });
+});
+
+/** Records where the client runs things: the connection and settling outside the zone, handlers inside. */
+class RecordingZone extends NoopNgZone {
+  readonly calls: string[] = [];
+  override run<T>(fn: (...args: unknown[]) => T): T {
+    this.calls.push("inside");
+    return fn();
+  }
+  override runOutsideAngular<T>(fn: (...args: unknown[]) => T): T {
+    this.calls.push("outside");
+    return fn();
+  }
+}
+
+test("provideSkailify connects and settles outside the Angular zone, and runs handlers inside it", async () => {
+  const zone = new RecordingZone();
+  const { gateway } = await mount(ShellComponent, (g) => [
+    { provide: NgZone, useValue: zone },
+    provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger }),
+  ]);
+  expect(zone.calls[0]).toBe("outside"); // start()
+  zone.calls.length = 0;
+  await gateway.invoke("app.detail.open", { id: "a" });
+  expect(zone.calls.slice(0, 2)).toEqual(["inside", "outside"]); // the handler, then settling
+});

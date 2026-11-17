@@ -14,6 +14,7 @@ import {
   type Injector,
   inject,
   makeEnvironmentProviders,
+  NgZone,
   provideEnvironmentInitializer,
   type Signal,
   signal,
@@ -61,12 +62,14 @@ export function provideSkailify(options: ProvideSkailifyOptions): EnvironmentPro
       provide: SKAILIFY,
       useFactory: () => {
         const appRef = inject(ApplicationRef);
+        const ngZone = inject(NgZone);
         const { navigation, ...rest } = options;
         return createSkailify({
           ...rest,
           navigation: typeof navigation === "function" ? navigation() : navigation,
           // An app with a never-ending timer under zone.js never becomes stable: look anyway after a while.
-          rendered: rest.rendered ?? (() => Promise.race([appRef.whenStable(), delay(STABLE_MAX_MS)])),
+          rendered: rest.rendered ?? (() => stableOrAfter(appRef, STABLE_MAX_MS)),
+          zone: rest.zone ?? { inside: (fn) => ngZone.run(fn), outside: (fn) => ngZone.runOutsideAngular(fn) },
         });
       },
     },
@@ -78,8 +81,15 @@ export function provideSkailify(options: ProvideSkailifyOptions): EnvironmentPro
   ]);
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Resolves when the app is stable, or after `ms`; the timer is cleared either way. Called outside the zone. */
+function stableOrAfter(appRef: ApplicationRef, ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    void appRef.whenStable().then(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
 }
 
 /** For calls outside the constructor: the injector whose lifetime the registration takes. */

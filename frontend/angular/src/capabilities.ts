@@ -6,7 +6,7 @@
  * router-agnostic: the app says what its views are and how to show one.
  */
 import * as z from "zod";
-import { type AgentAction, agentAction, SETTLES_ITSELF, type Skailify } from "./client";
+import { type AgentAction, agentAction, jsonSafe, SETTLES_ITSELF, type Skailify } from "./client";
 
 /** A view (page, screen) of the app, as the agent sees it in `list_views`. */
 export interface ViewDescriptor {
@@ -43,7 +43,7 @@ export interface ViewState {
 export function viewState(client: Skailify, settled: boolean): ViewState {
   const view = client.currentView();
   return {
-    view: view ? { id: view.id, title: view.title, state: view.state } : null,
+    view: view ? { id: view.id, title: view.title, state: jsonSafe(view.state) } : null,
     state: client.readState(),
     actions: client.getSnapshot().capabilities.map((c) => c.agentName),
     settled: settled && !client.loading(),

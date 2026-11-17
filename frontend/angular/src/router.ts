@@ -20,8 +20,9 @@ import type { Navigation, ViewDescriptor } from "./capabilities";
 /** A view the agent may show, and the route that shows it. */
 export interface RouteView extends ViewDescriptor {
   /**
-   * The route's path as in the router config, without the leading slash: `cards/:cardId`. Each `:name` is filled from
-   * the parameter of that name; parameters not in the path become query parameters.
+   * The view's full path from the root, without the leading slash: `cards/:cardId`. For a child route, join the paths
+   * of its parents: `orders` with a child `:orderId` is `orders/:orderId`. Each `:name` is filled from the parameter of
+   * that name; parameters not in the path become query parameters.
    */
   path: string;
 }
@@ -44,11 +45,21 @@ export function routerNavigation(views: readonly RouteView[]): () => Navigation 
           queryParams,
         });
         const navigated = await router.navigateByUrl(tree);
-        if (!navigated) throw new Error(`navigation to ${router.serializeUrl(tree)} was cancelled (a guard, or a newer navigation)`);
+        // false also when the URL is already on screen (onSameUrlNavigation "ignore"): that is not a failure
+        if (!navigated && router.url !== router.serializeUrl(tree)) throw new Error(`navigation to ${router.serializeUrl(tree)} was cancelled (a guard, or a newer navigation)`);
       },
       current: () => {
-        const path = split(router.url.split(/[?#]/)[0] ?? "");
-        return views.find((v) => matches(split(v.path), path))?.id;
+        // the primary outlet's segments, without matrix params, query or fragment
+        const path = (router.parseUrl(router.url).root.children["primary"]?.segments ?? []).map((s) => s.path);
+        // of several matching views the most specific wins: cards/new before cards/:cardId, whatever the order
+        let best: { id: string; params: number } | undefined;
+        for (const v of views) {
+          const pattern = split(v.path);
+          if (!matches(pattern, path)) continue;
+          const params = pattern.filter((s) => s.startsWith(":")).length;
+          if (!best || params < best.params) best = { id: v.id, params };
+        }
+        return best?.id;
       },
     };
   };

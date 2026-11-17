@@ -19,7 +19,7 @@
  * }
  * ```
  */
-import { DestroyRef, inject } from "@angular/core";
+import { DestroyRef, inject, isSignal, type Signal } from "@angular/core";
 import { getState, type StateSource } from "@ngrx/signals";
 import * as z from "zod";
 import { injectSkailify, type InjectOptions } from "./angular";
@@ -47,7 +47,9 @@ export interface ExposeSignalStoreConfig<S extends object> {
    */
   state?: boolean | ((store: S) => unknown);
   /** The methods the agent may call, by method name */
-  methods?: { [K in keyof S]?: S[K] extends (...args: never[]) => unknown ? SignalStoreMethodOptions : never };
+  methods?: {
+    [K in keyof S]?: S[K] extends Signal<unknown> ? never : S[K] extends (...args: never[]) => unknown ? SignalStoreMethodOptions : never;
+  };
 }
 
 /**
@@ -65,8 +67,9 @@ export function exposeSignalStore<S extends object>(store: S, config: ExposeSign
   for (const [method, opts] of Object.entries(config.methods ?? {}) as Array<[string, SignalStoreMethodOptions | undefined]>) {
     if (!opts) continue;
     const fn = (store as Record<string, unknown>)[method];
-    if (typeof fn !== "function") throw new Error(`skailify: the store ${config.name} has no method ${method}`);
+    if (typeof fn !== "function" || isSignal(fn)) throw new Error(`skailify: the store ${config.name} has no method ${method}`);
     const { name, input, args, ...rest } = opts;
+    if (args && !input) throw new Error(`skailify: ${config.name}.${method} names args but has no input schema for them`);
     removers.push(
       client.registerAction({
         ...rest,
@@ -91,12 +94,16 @@ function snake(text: string): string {
   return text.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
-/** A return value worth sending to the agent: not undefined, a subscription from `rxMethod`, or a function. */
+/**
+ * A return value worth sending to the agent: data, not undefined, a function, or a handle such as the
+ * `{ destroy }` an `rxMethod` returns (any object with a function in it).
+ */
 function plain(value: unknown): boolean {
   if (value === undefined || typeof value === "function") return false;
   if (value && typeof value === "object") {
     const proto = Object.getPrototypeOf(value);
-    return Array.isArray(value) || proto === Object.prototype || proto === null;
+    if (!Array.isArray(value) && proto !== Object.prototype && proto !== null) return false;
+    return !Object.values(value).some((v) => typeof v === "function");
   }
   return true;
 }
