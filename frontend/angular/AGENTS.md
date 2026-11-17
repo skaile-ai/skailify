@@ -42,8 +42,7 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 
 ## Prerequisites
 
-- Angular 20, 21 or 22, zoneless or with zone.js, built with the Angular CLI (or any build that
-  compiles TypeScript from `node_modules`; the package ships TypeScript sources)
+- Angular 20, 21 or 22, zoneless or with zone.js
 - `@skaile/workspaces` `^10.4.0` (the app SDK, `@skaile/workspaces/app-sdk`)
 - `zod` `^4.4.0`: major 4, because the SDK turns your schemas into JSON Schema with it
 - Optional: `@angular/router`, `@ngrx/store`, `@ngrx/signals` 20 to 22, if the app uses them
@@ -60,10 +59,6 @@ unreleased change, install a packed tarball (`npm pack` in `frontend/angular` of
 repository), never the folder by path: a path install links the folder, and the build may then load a
 second `@angular/core` from the checkout's `node_modules`, which breaks injection (`NG0203` or "no
 provider for InjectionToken skailify").
-
-The package ships TypeScript. If the Angular CLI refuses to compile it ("is missing from the
-TypeScript compilation"), add `"node_modules/@skaile/skailify-angular/src/**/*.ts"` to `include` in
-`tsconfig.app.json`.
 
 ## Step 2: connect
 
@@ -232,5 +227,3 @@ Run each of these, and report exactly which ones you ran and what happened.
 - Under zone.js, an app with a timer of its own that never stops (a polling `setInterval` started in
   the zone) never becomes stable. Every call then waits the full second before it settles; start
   such timers with `NgZone.runOutsideAngular`.
-- The package ships TypeScript sources. If the app's unit tests run on Jest, add
-  `@skaile/skailify-angular` to the exceptions in `transformIgnorePatterns`.

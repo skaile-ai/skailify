@@ -206,9 +206,6 @@ The tests drive it through the app SDK's fake gateway.
   milliseconds, and a handler's change to a plain field is rendered. (The unit tests run on bun,
   whose native `async`/`await` zone.js cannot follow; they check only that the adapter uses `NgZone`
   as described.)
-- The package ships TypeScript sources, which the Angular CLI and Vitest compile. Jest, which does
-  not transform `node_modules`, needs `transformIgnorePatterns` to let `@skaile/skailify-angular`
-  through.
 
 ## Development
 
