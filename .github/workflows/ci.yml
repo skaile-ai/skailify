@@ -77,3 +77,10 @@ jobs:
     with:
       path: frontend/react
       kind: js
+
+  angular:
+    name: angular adapter
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: frontend/angular
+      kind: js

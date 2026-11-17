@@ -23,6 +23,7 @@ the [`@skaile/workspaces`](https://www.npmjs.com/package/@skaile/workspaces) pac
 
 | Adapter | Folder | Status | What it does |
 |---|---|---|---|
+| angular | `frontend/angular/` | Available | Angular 20 to 22 apps, zoneless or zone.js: views, state and actions declared with `inject*` functions; NgRx Store actions and selectors, NgRx SignalStore methods and state; Angular Router navigation |
 | react | `frontend/react/` | Available | React 18/19 apps, router-agnostic: views, exposed state and actions declared with hooks, over the Skaile app channel |
 | vue-tsm | `frontend/vue-tsm/` | Available | Vue 3 apps on the tsm module runtime: views, lists, UIModel forms and view actions over the Skaile app channel |
 | emf-mcp | `backend/emf-mcp/` | Preliminary | EMF/OSGi backends: generic model tools over MCP, an OAuth resource server for per-user MCP access, and the `/.well-known/skailify.json` manifest |
