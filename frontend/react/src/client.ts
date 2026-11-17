@@ -206,6 +206,19 @@ function afterRender(): Promise<void> {
   });
 }
 
+/** What stands in for state that JSON cannot carry (a BigInt, a cycle) */
+export const NOT_SERIALISABLE = { error: "state is not JSON-serialisable" } as const;
+
+/** The value itself when JSON can carry it, else {@link NOT_SERIALISABLE}: one bad value never fails a whole answer. */
+export function jsonSafe(value: unknown): unknown {
+  try {
+    JSON.stringify(value);
+    return value;
+  } catch {
+    return NOT_SERIALISABLE;
+  }
+}
+
 /** How long to wait for an animation frame before treating the page as rendered */
 const RENDER_FALLBACK_MS = 50;
 
@@ -304,7 +317,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     const out: Record<string, unknown> = {};
     for (const { name, read } of states.values()) {
       try {
-        out[name] = read();
+        out[name] = jsonSafe(read());
       } catch (error) {
         out[name] = { error: describe(error) };
       }
@@ -326,6 +339,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   // The SDK keeps the last report and phase while disconnected and replays them on every bind, so they are sent
   // whether or not a session is bound: what the platform sees after a reconnect is then what is true now.
   let lastReport = "";
+  const unserialisableLogged = new Set<string>();
   let sentLoading = false;
   /**
    * Reports the view when it changed (always with `force`), and says `loading` when the app becomes busy and `settled`
@@ -333,8 +347,19 @@ export function createSkailify(options: SkailifyOptions): Skailify {
    */
   function reportIfChanged(force = false): void {
     if (!app) return;
-    const next = report();
-    const key = JSON.stringify(next);
+    let next = report();
+    let key: string;
+    try {
+      key = JSON.stringify(next);
+    } catch (error) {
+      // a BigInt or a cycle in the view's state: report the view without it, and say why (once per view)
+      if (!unserialisableLogged.has(next.viewId)) {
+        unserialisableLogged.add(next.viewId);
+        logger.error(`skailify: the state of view ${next.viewId} is not JSON-serialisable`, { message: describe(error) });
+      }
+      next = { viewId: next.viewId, title: next.title, state: NOT_SERIALISABLE };
+      key = JSON.stringify(next);
+    }
     if (force || key !== lastReport) {
       lastReport = key;
       try {
