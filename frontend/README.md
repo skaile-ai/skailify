@@ -14,5 +14,8 @@ Each adapter is a folder here (`frontend/<name>/`) with:
 - an `AGENTS.md` a coding agent can follow to integrate the adapter into an app,
 - its tests, runnable on their own from the adapter's folder.
 
+A frontend adapter is published to npm as `@skaile/skailify-<name>`, built to `dist/`; see
+[docs/releasing.md](../docs/releasing.md).
+
 Frontend adapters are Apache-2.0 licensed. See the [root README](../README.md) for the list of adapters
 and [CONTRIBUTING.md](../CONTRIBUTING.md) for how to add one.
