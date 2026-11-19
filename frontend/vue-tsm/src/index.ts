@@ -20,6 +20,7 @@ import { startSkailify as start, type SkailifyHandle, type SkailifyOptions } fro
 import { registry, type AgentAction, type FormRegistration, type ListRegistration } from './registry.js'
 
 export { z }
+export type { AppAssistantCorner, AppAssistantPresentation } from '@skaile/workspaces/app-sdk'
 export { createBridge, defineCapability, MAX_WAIT_MS, type Bridge, type WaitOptions, type BridgeOptions, type SkailifyCapability, type FormState, type ListRow, type ListState, type ViewState } from './bridge.js'
 export { skaileParentOrigin, type ConnectionStatus, type SkailifyHandle, type SkailifyOptions } from './connect.js'
 export { defaultLabel, idOf, missingRequired, readFields, setFields, widgetsOf, type FieldError, type FieldInfo, type Labeler, type ReferenceResolver, type SetFieldsResult, type ValueWriter } from './forms.js'

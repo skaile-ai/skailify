@@ -429,3 +429,130 @@ test("get_view_state answers despite a value JSON cannot carry, and the error is
   await c.close();
   await g.close();
 });
+
+// ── Assistant hints ─────────────────────────────────────────────────────────
+
+const EMBEDDED = { parent: {}, location: { search: "?skaileParentOrigin=https%3A%2F%2Fskaile.example" } };
+const HIDDEN = { kind: "none" } as const;
+const TOP_LEFT = { kind: "floating", corner: "top-left" } as const;
+
+/** An embedded client whose handshake the test answers; records what each ping and each runtime message carried. */
+function embeddedClient(options: Partial<SkailifyOptions> = {}) {
+  gateway = createFakeGateway();
+  const g = gateway;
+  const pings: unknown[] = [];
+  const posted: unknown[] = [];
+  const answers: Array<() => void> = [];
+  let n = 0;
+  client = createSkailify({
+    appId: "test",
+    windowRef: EMBEDDED,
+    logger: noopLogger,
+    reconnect: { baseMs: 5, maxMs: 10 },
+    resolveParams: (appId, _origin, assistant) => {
+      pings.push(assistant);
+      return new Promise((resolve) => answers.push(() => resolve({ appId, url: "wss://gw", token: `t${++n}` })));
+    },
+    postAssistant: (appId, origin, presentation) => posted.push({ appId, origin, presentation }),
+    createTransport: (_url, token): AppTransport => {
+      const inner = g.transport();
+      return {
+        connect: async () => {
+          await token();
+          return inner.connect();
+        },
+        disconnect: () => inner.disconnect(),
+        send: (message) => inner.send(message),
+        onMessage: (handler) => inner.onMessage(handler),
+        onDisconnect: (handler) => inner.onDisconnect(handler),
+        get connected() {
+          return inner.connected;
+        },
+      };
+    },
+    ...options,
+  });
+  const answerNext = async () => {
+    await until(() => answers.length > 0);
+    answers.shift()?.();
+  };
+  return { g, client, pings, posted, answerNext };
+}
+
+test("the assistant option rides every ping, and a change before start replaces it", async () => {
+  const { g, client, pings, posted, answerNext } = embeddedClient({ assistant: HIDDEN });
+  client.setAssistant(TOP_LEFT);
+  expect(posted).toEqual([]);
+  const started = client.start();
+  await answerNext();
+  await started;
+  g.drop();
+  await answerNext();
+  await g.waitFor((gw) => gw.helloCount === 2 && gw.bound);
+  expect(pings).toEqual([TOP_LEFT, TOP_LEFT]);
+  expect(posted).toEqual([]);
+});
+
+test("without the option the pings carry no hints", async () => {
+  const { client, pings, answerNext } = embeddedClient();
+  const started = client.start();
+  await answerNext();
+  await started;
+  expect(pings).toEqual([undefined]);
+});
+
+test("a change while a ping is in flight is sent now and again once the host answered", async () => {
+  const { client, pings, posted, answerNext } = embeddedClient({ assistant: TOP_LEFT });
+  const started = client.start();
+  await until(() => pings.length === 1);
+  client.setAssistant(HIDDEN);
+  await answerNext();
+  await started;
+  const message = { appId: "test", origin: "https://skaile.example", presentation: HIDDEN };
+  // the ping that was answered carried the old hints; the message after it puts the new ones back on top
+  expect(pings).toEqual([TOP_LEFT]);
+  expect(posted).toEqual([message, message]);
+});
+
+test("a change once connected is sent to the host, and later pings carry it", async () => {
+  const { g, client, pings, posted, answerNext } = embeddedClient();
+  const started = client.start();
+  await answerNext();
+  await started;
+  client.setAssistant(HIDDEN);
+  expect(posted).toEqual([{ appId: "test", origin: "https://skaile.example", presentation: HIDDEN }]);
+  g.drop();
+  await answerNext();
+  await g.waitFor((gw) => gw.helloCount === 2 && gw.bound);
+  expect(pings).toEqual([undefined, HIDDEN]);
+  expect(posted).toHaveLength(1);
+});
+
+test("standalone, a change sends nothing", async () => {
+  const posted: unknown[] = [];
+  client = createSkailify({
+    appId: "test",
+    windowRef: { parent: null, location: { search: "" } },
+    logger: noopLogger,
+    postAssistant: (...args) => posted.push(args),
+  });
+  await client.start();
+  client.setAssistant(HIDDEN);
+  expect(posted).toEqual([]);
+});
+
+test("a failure to send the hints is logged and does not throw", async () => {
+  const warnings: string[] = [];
+  const logger: AppLogger = { ...noopLogger, warn: (message) => warnings.push(message) };
+  const { client, answerNext } = embeddedClient({
+    logger,
+    postAssistant: () => {
+      throw new Error("unpinnable");
+    },
+  });
+  const started = client.start();
+  await answerNext();
+  await started;
+  expect(() => client.setAssistant(HIDDEN)).not.toThrow();
+  expect(warnings).toEqual(["skailify: could not send the assistant hints"]);
+});

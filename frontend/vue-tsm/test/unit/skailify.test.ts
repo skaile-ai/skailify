@@ -95,6 +95,67 @@ describe('connecting', () => {
   }, 5000)
 })
 
+describe('assistant hints', () => {
+  const HIDDEN = { kind: 'none' } as const
+  const TOP_LEFT = { kind: 'floating', corner: 'top-left' } as const
+  const message = (presentation: unknown) => ({ appId: 'shop', origin: 'https://skaile.test', presentation })
+
+  /** Records what each ping carried and each runtime message sent; `hold` keeps the next answer until released. */
+  function recording() {
+    const pings: unknown[] = []
+    const posted: unknown[] = []
+    let release: (() => void) | null = null
+    let held = false
+    return {
+      pings,
+      posted,
+      hold: () => { held = true },
+      release: () => release?.(),
+      options: {
+        resolveParams: async (appId: string, origin: string, assistant?: unknown) => {
+          pings.push(assistant)
+          if (held) {
+            held = false
+            await new Promise<void>((resolve) => { release = resolve })
+          }
+          return host.resolveParams(appId, origin)
+        },
+        postAssistant: (appId: string, origin: string, presentation: unknown) => posted.push({ appId, origin, presentation }),
+      },
+    }
+  }
+
+  it('sends the option on every ping, and a change once connected as a message that later pings carry', async () => {
+    const r = recording()
+    await start({ ...r.options, assistant: TOP_LEFT })
+    handle.setAssistant(HIDDEN)
+    expect(r.posted).toEqual([message(HIDDEN)])
+    host.gateway.drop()
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    expect(r.pings).toEqual([TOP_LEFT, HIDDEN])
+  }, 5000)
+
+  it('sends a change made while a ping is in flight again once the host answered', async () => {
+    const r = recording()
+    r.hold()
+    const ready = start({ ...r.options, assistant: TOP_LEFT })
+    while (r.pings.length === 0) await new Promise((resolve) => setTimeout(resolve, 5))
+    handle.setAssistant(HIDDEN)
+    r.release()
+    await ready
+    expect(r.pings).toEqual([TOP_LEFT])
+    expect(r.posted).toEqual([message(HIDDEN), message(HIDDEN)])
+  })
+
+  it('sends nothing standalone', async () => {
+    const r = recording()
+    const standaloneHandle = startSkailify({ appId: 'shop', views: () => VIEWS, router, windowRef: standalone, ...r.options })
+    standaloneHandle.setAssistant(HIDDEN)
+    expect(r.posted).toEqual([])
+    await standaloneHandle.close()
+  })
+})
+
 describe('views and navigation', () => {
   beforeEach(() => start())
 

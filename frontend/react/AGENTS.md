@@ -42,7 +42,7 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 
 - React 18.3 or 19, and a bundler that resolves TypeScript sources from `node_modules` (Vite, Next.js,
   webpack with a TypeScript loader)
-- `@skaile/workspaces` `^10.4.0` (the app SDK, `@skaile/workspaces/app-sdk`)
+- `@skaile/workspaces` `^10.14.0` (the app SDK, `@skaile/workspaces/app-sdk`)
 - `zod` `^4.4.0`: major 4, because the SDK turns your schemas into JSON Schema with it
 - The app's id: the `id` of its entry in the workspace's `skaile.preview.json`
 
@@ -82,7 +82,10 @@ createRoot(document.getElementById("root")!).render(
 - `appId` has no safe default: it must equal the app's `id` in `skaile.preview.json`, or the platform
   refuses the connection.
 - Call `start()` outside components, not in a `useEffect`: React mounts effects twice in development.
-- Optional: `navigation` (step 3), `settleTimeoutMs` (default 3000), `logger`.
+- Optional: `navigation` (step 3), `settleTimeoutMs` (default 3000), `logger`, and `assistant`:
+  where Skaile puts its agent button over the app, `{ kind: "floating", corner: "bottom-left" }`, or
+  `{ kind: "none" }` to leave it out. Leave it unset unless the button would cover the app's own
+  controls or the user asked for no button; `skailify.setAssistant(...)` changes it later.
 
 ## Step 3: expose what the app shows
 

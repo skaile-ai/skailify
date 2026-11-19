@@ -12,6 +12,7 @@
  * ```
  */
 export { z } from "zod";
+export type { AppAssistantCorner, AppAssistantPresentation } from "@skaile/workspaces/app-sdk";
 export {
   type Navigation,
   type ViewDescriptor,

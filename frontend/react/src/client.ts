@@ -13,6 +13,7 @@
  * Opened on its own, the app does not connect and registrations cost nothing.
  */
 import {
+  type AppAssistantPresentation,
   type AppConnectionParams,
   type AppHandlerContext,
   type AppLogger,
@@ -30,6 +31,7 @@ import {
   resolveAppConnectionParams,
   type SessionTokenProvider,
   type SkaileApp,
+  setAssistantPresentation,
 } from "@skaile/workspaces/app-sdk";
 import type * as z from "zod";
 import { genericCapabilities, type Navigation } from "./capabilities.ts";
@@ -125,9 +127,16 @@ export interface SkailifyOptions {
    * resolves its own connection). The client then connects whether or not it is embedded.
    */
   transport?: AppTransport;
-  /** For tests: the window, the host handshake and the transport factory */
+  /**
+   * How Skaile shows its agent button over the app: `{ kind: "none" }` hides it, `{ kind: "floating", corner,
+   * offset, size, accent }` places it. Without it Skaile shows the button where it chooses. Change it later with
+   * {@link Skailify.setAssistant}.
+   */
+  assistant?: AppAssistantPresentation;
+  /** For tests: the window, the host handshake, the transport factory and the assistant message */
   windowRef?: WindowLike;
-  resolveParams?: (appId: string, parentOrigin: string) => Promise<AppConnectionParams>;
+  resolveParams?: (appId: string, parentOrigin: string, assistant?: AppAssistantPresentation) => Promise<AppConnectionParams>;
+  postAssistant?: (appId: string, parentOrigin: string, presentation: AppAssistantPresentation) => void;
   createTransport?: (url: string, token: SessionTokenProvider) => AppTransport;
 }
 
@@ -138,6 +147,11 @@ export interface Skailify {
   /** Connects (once; later calls return the same promise). Never rejects: a failure shows in the status. */
   start(): Promise<void>;
   close(): Promise<void>;
+  /**
+   * Changes how Skaile shows its agent button over the app (see {@link SkailifyOptions.assistant}). Before the
+   * connection it replaces the option; standalone it does nothing.
+   */
+  setAssistant(presentation: AppAssistantPresentation): void;
   /**
    * Adds an action; returns the function that removes exactly this registration. Of several actions with the same
    * name the one registered last is offered; removing it offers the one before again.
@@ -264,6 +278,9 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   let app: SkaileApp | null = null;
   let started: Promise<void> | null = null;
   let closed = false;
+  // The hints the next ping carries, and the host to send a change to once connecting
+  let assistant = options.assistant;
+  let hostOrigin: string | null = null;
 
   // ── Snapshot for React ────────────────────────────────────────────────────
   let status: ConnectionStatus = { state: "idle" };
@@ -535,8 +552,18 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       setStatus({ state: "standalone" });
       return;
     }
-    const resolveParams =
-      options.resolveParams ?? ((appId: string, origin: string) => resolveAppConnectionParams({ appId, parentOrigin: origin }));
+    hostOrigin = parentOrigin;
+    const resolve =
+      options.resolveParams ??
+      ((appId: string, origin: string, presentation?: AppAssistantPresentation) =>
+        resolveAppConnectionParams({ appId, parentOrigin: origin, ...(presentation ? { assistant: presentation } : {}) }));
+    // Each ping carries the assistant hints; a change made while one was in flight is sent again once it is answered.
+    const resolveParams = async (appId: string, origin: string): Promise<AppConnectionParams> => {
+      const sent = assistant;
+      const params = await resolve(appId, origin, sent);
+      if (assistant !== sent && assistant && !closed) postAssistant(assistant);
+      return params;
+    };
     const createTransport =
       options.createTransport ?? ((url: string, sessionToken: SessionTokenProvider) => createWebSocketAppTransport({ url, sessionToken }));
     setStatus({ state: "connecting" });
@@ -554,6 +581,19 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     return connect(transport);
   }
 
+  function postAssistant(presentation: AppAssistantPresentation): void {
+    if (!hostOrigin) return;
+    try {
+      (options.postAssistant ?? ((appId, parentOrigin, p) => setAssistantPresentation({ appId, parentOrigin, presentation: p })))(
+        options.appId,
+        hostOrigin,
+        presentation,
+      );
+    } catch (error) {
+      logger.warn("skailify: could not send the assistant hints", { message: describe(error) });
+    }
+  }
+
   const handle: Skailify & { app: SkaileApp | null } = {
     appId: options.appId,
     app: null,
@@ -568,6 +608,10 @@ export function createSkailify(options: SkailifyOptions): Skailify {
         });
       }
       return started;
+    },
+    setAssistant(presentation) {
+      assistant = presentation;
+      if (started && !closed) postAssistant(presentation);
     },
     async close() {
       closed = true;

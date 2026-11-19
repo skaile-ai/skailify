@@ -17,6 +17,8 @@ import {
   createWebSocketAppTransport,
   PARENT_ORIGIN_QUERY_PARAM,
   resolveAppConnectionParams,
+  setAssistantPresentation,
+  type AppAssistantPresentation,
   type AppConnectionParams,
   type AppLogger,
   type AppSession,
@@ -45,9 +47,16 @@ export interface SkailifyOptions extends BridgeOptions {
   enabled?: 'auto' | false
   logger?: AppLogger
   onStatus?: (status: ConnectionStatus) => void
-  /** For tests: the window, the host handshake and the transport */
+  /**
+   * How Skaile shows its agent button over the app: `{ kind: 'none' }` hides it, `{ kind: 'floating', corner,
+   * offset, size, accent }` places it. Without it Skaile shows the button where it chooses. Change it later with
+   * {@link SkailifyHandle.setAssistant}.
+   */
+  assistant?: AppAssistantPresentation
+  /** For tests: the window, the host handshake, the transport and the assistant message */
   windowRef?: WindowLike
-  resolveParams?: (appId: string, parentOrigin: string) => Promise<AppConnectionParams>
+  resolveParams?: (appId: string, parentOrigin: string, assistant?: AppAssistantPresentation) => Promise<AppConnectionParams>
+  postAssistant?: (appId: string, parentOrigin: string, presentation: AppAssistantPresentation) => void
   createTransport?: (url: string, token: SessionTokenProvider) => AppTransport
 }
 
@@ -57,6 +66,8 @@ export interface SkailifyHandle {
   app: SkaileApp | null
   /** Resolves when the first connect is done (or failed, or there is nothing to connect) */
   ready: Promise<void>
+  /** Changes how Skaile shows its agent button over the app (see {@link SkailifyOptions.assistant}); standalone a no-op */
+  setAssistant(presentation: AppAssistantPresentation): void
   close(): Promise<void>
 }
 
@@ -78,18 +89,46 @@ export function startSkailify(options: SkailifyOptions): SkailifyHandle {
 
   if (!parentOrigin) {
     status({ state: 'standalone' })
-    return { bridge, app: null, ready: Promise.resolve(), close: async () => {} }
+    return { bridge, app: null, ready: Promise.resolve(), setAssistant: () => {}, close: async () => {} }
   }
 
   const logger = options.logger ?? consoleLogger
-  const resolveParams = options.resolveParams
-    ?? ((appId: string, origin: string) => resolveAppConnectionParams({ appId, parentOrigin: origin }))
+  const resolve = options.resolveParams
+    ?? ((appId: string, origin: string, presentation?: AppAssistantPresentation) =>
+      resolveAppConnectionParams({ appId, parentOrigin: origin, ...(presentation ? { assistant: presentation } : {}) }))
+  // The hints the next ping carries; a change made while one was in flight is sent again once it is answered.
+  let assistant = options.assistant
+  const resolveParams = async (appId: string, origin: string): Promise<AppConnectionParams> => {
+    const sent = assistant
+    const params = await resolve(appId, origin, sent)
+    if (assistant !== sent && assistant && !closed) postAssistant(assistant)
+    return params
+  }
+  function postAssistant(presentation: AppAssistantPresentation): void {
+    try {
+      const post = options.postAssistant
+        ?? ((appId: string, origin: string, p: AppAssistantPresentation) =>
+          setAssistantPresentation({ appId, parentOrigin: origin, presentation: p }))
+      post(options.appId, parentOrigin!, presentation)
+    } catch (error) {
+      logger.warn('skailify: could not send the assistant hints', { message: error instanceof Error ? error.message : String(error) })
+    }
+  }
   const createTransport = options.createTransport
     ?? ((url: string, sessionToken: SessionTokenProvider) => createWebSocketAppTransport({ url, sessionToken }))
 
   let closed = false
   let app: SkaileApp | null = null
-  const handle: SkailifyHandle = { bridge, app: null, ready: Promise.resolve(), close: async () => {} }
+  const handle: SkailifyHandle = {
+    bridge,
+    app: null,
+    ready: Promise.resolve(),
+    setAssistant(presentation) {
+      assistant = presentation
+      if (!closed) postAssistant(presentation)
+    },
+    close: async () => {},
+  }
 
   /**
    * Brings the registered capabilities in step with the bridge's: new and changed ones register, gone ones
