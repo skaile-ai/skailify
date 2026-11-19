@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-angular",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Skailify adapter for Angular apps: makes their views, state, NgRx store and actions agent-controllable over the Skaile app channel",
