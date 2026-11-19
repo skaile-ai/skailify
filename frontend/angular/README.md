@@ -127,6 +127,27 @@ For a panel in the app's own UI: `injectSkailifyStatus()`, `injectSkailifyCapabi
 `injectSkailifyActivity()` return signals (the activity is the agent's latest calls and the
 connection events, newest first).
 
+### The agent button (optional)
+
+When the app fills the screen in Skaile (on a phone, maximised, or with the chat hidden), Skaile
+draws a small agent button over it that opens a compact chat with the session's agent. The button is
+on by default and the user can drag it. Skaile draws it on top of the app's frame, never inside it.
+The `assistant` option tells Skaile where to put it, or to leave it out:
+
+```ts
+provideSkailify({
+  appId: "kanban",
+  assistant: { kind: "floating", corner: "bottom-left" }, // or { kind: "none" } to leave it out
+});
+```
+
+`{ kind: "floating" }` takes `corner` (`top-left`, `top-right`, `bottom-left`, `bottom-right`),
+`offset` in px from that corner, the chat's `size` in px and an `accent` colour for the button; every
+field is optional. Skaile treats them as hints and keeps them inside the frame. Without the option
+Skaile picks the place itself. To change the hints while the app runs, for example to hide the button
+over a full-screen editor, call `injectSkailify().setAssistant({ kind: "none" })`. Once the user has dragged the button, their place wins
+over `corner` and `offset`.
+
 ### NgRx Store
 
 The agent dispatches the same actions the app's buttons dispatch. NgRx keeps no runtime schema of an
@@ -197,10 +218,10 @@ The tests drive it through the app SDK's fake gateway.
 ## Versions
 
 - Peer `@angular/core` 20, 21 or 22, and NgRx 20 to 22 for the NgRx entry points.
-- Peer `@skaile/workspaces` ^10.4.0, the first version with view reports, `loading`, `settled` and
-  the conformance kit.
+- Peer `@skaile/workspaces` ^10.14.0, the first version that sends the agent button hints
+  (`assistant`).
 - CI runs the tests and the conformance checks with Angular 22 against the lowest and the latest
-  version in that range (10.4.0 and 10.11.0 today).
+  version in that range.
 - Angular 20.0 with NgRx 20.0 and SDK 10.4.0 were tested by hand.
 - zone.js was tested by hand in an Angular CLI app over a real WebSocket: an agent's call settles in
   milliseconds, and a handler's change to a plain field is rendered. (The unit tests run on bun,

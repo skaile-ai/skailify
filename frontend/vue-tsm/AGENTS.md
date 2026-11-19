@@ -34,7 +34,7 @@ registration is a no-op in cost.
 
 - Node.js 22 or newer (or Bun 1.3).
 - Vue 3.5+, vue-router 5, zod 4.
-- `@skaile/workspaces` ^10.4.0 (the contract: `@skaile/workspaces/app-sdk`).
+- `@skaile/workspaces` ^10.14.0 (the contract: `@skaile/workspaces/app-sdk`).
 - Forms built from UIModels with `@emfts/core` and `@emfts/uimodel-composer`.
 - Optional: the tsm module runtime (`@eclipse-daanse/tsm`), if the views come from tsm view
   services. Without it, pass your own view list.
@@ -82,6 +82,10 @@ startSkailify({
 - `selectionParam` (default `id`) is the query parameter a view reads the selected object from.
 - Other options: `label`, `write`, `maxRows` (default 50), `settleTimeoutMs` (default 3000,
   at most 10000), `capabilityPrefix` (leave empty; the platform already namespaces by app id).
+- `assistant`: where Skaile puts its agent button over the app, `{ kind: 'floating', corner:
+  'bottom-left' }`, or `{ kind: 'none' }` to leave it out. Leave it unset unless the button would
+  cover the app's own controls or the user asked for no button; the handle's `setAssistant(...)`
+  changes it later.
 
 ## Step 3: register what each view shows
 

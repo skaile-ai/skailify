@@ -33,7 +33,7 @@
         "@happy-dom/global-registrator": "^20.0.0",
         "@ngrx/signals": "^22.0.0",
         "@ngrx/store": "^22.0.0",
-        "@skaile/workspaces": "10.11.0",
+        "@skaile/workspaces": "10.14.0",
         "@types/bun": "^1.3.0",
         "publint": "0.3.25",
         "rxjs": "^7.8.0",
@@ -46,7 +46,7 @@
         "@angular/router": "^20.0.0 || ^21.0.0 || ^22.0.0",
         "@ngrx/signals": "^20.0.0 || ^21.0.0 || ^22.0.0",
         "@ngrx/store": "^20.0.0 || ^21.0.0 || ^22.0.0",
-        "@skaile/workspaces": "^10.4.0",
+        "@skaile/workspaces": "^10.14.0",
         "zod": "^4.4.0",
       },
       "optionalPeers": [
@@ -57,10 +57,10 @@
     },
     "frontend/react": {
       "name": "@skaile/skailify-react",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "devDependencies": {
         "@happy-dom/global-registrator": "^20.0.0",
-        "@skaile/workspaces": "10.11.0",
+        "@skaile/workspaces": "10.14.0",
         "@types/bun": "^1.3.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
@@ -72,7 +72,7 @@
         "zod": "^4.4.0",
       },
       "peerDependencies": {
-        "@skaile/workspaces": "^10.4.0",
+        "@skaile/workspaces": "^10.14.0",
         "react": "^18.3.0 || ^19.0.0",
         "zod": "^4.4.0",
       },
@@ -84,7 +84,7 @@
         "@eclipse-daanse/tsm": "0.1.0-next.1",
         "@emfts/core": "0.3.0-next.4",
         "@emfts/uimodel-composer": "0.0.2-next.1",
-        "@skaile/workspaces": "10.11.0",
+        "@skaile/workspaces": "10.14.0",
         "@types/bun": "^1.3.12",
         "publint": "0.3.25",
         "tsdown": "0.23.7",
@@ -98,7 +98,7 @@
         "@eclipse-daanse/tsm": "~0.1.0-next.1",
         "@emfts/core": "~0.3.0-next.4",
         "@emfts/uimodel-composer": "~0.0.2-next.1",
-        "@skaile/workspaces": "^10.4.0",
+        "@skaile/workspaces": "^10.14.0",
         "vue": "^3.5.0",
         "vue-router": "^5.0.0",
         "zod": "^4.4.0",
@@ -327,7 +327,7 @@
 
     "@skaile/skailify-vue-tsm": ["@skaile/skailify-vue-tsm@workspace:frontend/vue-tsm"],
 
-    "@skaile/workspaces": ["@skaile/workspaces@10.11.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-UY5L3xdFn1Pg4bA9y8r2xPHNqKJsxtfFHAUEDX+oDKpwDdBYW5jS19gtUxb2C+4fe9HwYughuDZHslWSRLxlqg=="],
+    "@skaile/workspaces": ["@skaile/workspaces@10.14.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-CF+tCItWHB6C0cIHgE8+zSPvzsgNq66EHogjxFHdx2AnBQeeXGndxop4LUQfzjjqoVSiXR8tKOTJCfRemz9//w=="],
 
     "@trpc/client": ["@trpc/client@11.28.3", "", { "peerDependencies": { "@trpc/server": "11.28.3", "typescript": ">=5.7.2" } }, "sha512-NnMXBOCVzPMELdQH/X26MhI4u9g83nxWy3apc7UX1beevUk6rEYqfOboqCb/rVoVPu3CBVaPb8PB7AG51oEKvQ=="],
 

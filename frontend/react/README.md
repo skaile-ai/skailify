@@ -110,6 +110,27 @@ const skailify = createSkailify({
 });
 ```
 
+### The agent button (optional)
+
+When the app fills the screen in Skaile (on a phone, maximised, or with the chat hidden), Skaile
+draws a small agent button over it that opens a compact chat with the session's agent. The button is
+on by default and the user can drag it. Skaile draws it on top of the app's frame, never inside it.
+The `assistant` option tells Skaile where to put it, or to leave it out:
+
+```tsx
+const skailify = createSkailify({
+  appId: "kanban",
+  assistant: { kind: "floating", corner: "bottom-left" }, // or { kind: "none" } to leave it out
+});
+```
+
+`{ kind: "floating" }` takes `corner` (`top-left`, `top-right`, `bottom-left`, `bottom-right`),
+`offset` in px from that corner, the chat's `size` in px and an `accent` colour for the button; every
+field is optional. Skaile treats them as hints and keeps them inside the frame. Without the option
+Skaile picks the place itself. To change the hints while the app runs, for example to hide the button
+over a full-screen editor, call `skailify.setAssistant({ kind: "none" })`. Once the user has dragged the button, their place wins
+over `corner` and `offset`.
+
 ## Example
 
 [`test/kanban/`](test/kanban/) is a small kanban board made agent-controllable with this adapter:
@@ -118,9 +139,9 @@ the capabilities and the agent's calls. The tests drive it through the app SDK's
 
 ## SDK version
 
-Peer `@skaile/workspaces` ^10.4.0, the first version with view reports, `loading` and `settled`, and
-the conformance kit. CI runs the tests and the conformance checks against the lowest and the latest
-version in that range (10.4.0 and 10.11.0 today) with React 19; React 18.3.1 was tested by hand.
+Peer `@skaile/workspaces` ^10.14.0, the first version that sends the agent button hints (`assistant`).
+CI runs the tests and the conformance checks against the lowest and the latest version in that range
+with React 19; React 18.3.1 was tested by hand.
 
 ## Development
 

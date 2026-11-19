@@ -43,7 +43,7 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 ## Prerequisites
 
 - Angular 20, 21 or 22, zoneless or with zone.js
-- `@skaile/workspaces` `^10.4.0` (the app SDK, `@skaile/workspaces/app-sdk`)
+- `@skaile/workspaces` `^10.14.0` (the app SDK, `@skaile/workspaces/app-sdk`)
 - `zod` `^4.4.0`: major 4, because the SDK turns your schemas into JSON Schema with it
 - Optional: `@angular/router`, `@ngrx/store`, `@ngrx/signals` 20 to 22, if the app uses them
 - The app's id: the `id` of its entry in the workspace's `skaile.preview.json`
@@ -80,7 +80,10 @@ export const appConfig: ApplicationConfig = {
 - The client starts when the app boots and closes when it is destroyed; do not call `start()`
   yourself.
 - An NgModule app adds `provideSkailify(...)` to the root module's `providers`.
-- Optional: `navigation` (step 3), `settleTimeoutMs` (default 3000), `logger`.
+- Optional: `navigation` (step 3), `settleTimeoutMs` (default 3000), `logger`, and `assistant`:
+  where Skaile puts its agent button over the app, `{ kind: "floating", corner: "bottom-left" }`, or
+  `{ kind: "none" }` to leave it out. Leave it unset unless the button would cover the app's own
+  controls or the user asked for no button; `injectSkailify().setAssistant(...)` changes it later.
 
 ## Step 3: expose what the app shows
 
