@@ -1,0 +1,61 @@
+{
+  "name": "@skaile/skailify-core",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "Framework-free Skailify client: makes an app's views, state and actions agent-controllable over the Skaile app channel, with a <script>-tag bundle for apps without a bundler",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skaile-ai/skailify-adapters.git",
+    "directory": "frontend/core"
+  },
+  "homepage": "https://github.com/skaile-ai/skailify-adapters/tree/main/frontend/core#readme",
+  "bugs": {
+    "url": "https://github.com/skaile-ai/skailify-adapters/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/skailify.iife.js",
+  "jsdelivr": "./dist/skailify.iife.js",
+  "sideEffects": ["./dist/skailify.iife.js"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./skailify.iife.js": "./dist/skailify.iife.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "bun run build",
+    "check:package": "bun run build && publint --strict",
+    "test": "bun run build && bun test --preload ./test/dom.ts ./test/unit",
+    "conformance": "bun test ./test/conformance",
+    "type-check": "tsc --noEmit -p ."
+  },
+  "peerDependencies": {
+    "@skaile/workspaces": "^10.14.0",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^20.0.0",
+    "@skaile/workspaces": "10.14.0",
+    "@types/bun": "^1.3.0",
+    "publint": "0.3.25",
+    "tsdown": "0.23.7",
+    "typescript": "~5.9.2",
+    "zod": "^4.4.0"
+  }
+}

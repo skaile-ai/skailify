@@ -5,8 +5,8 @@
  * host handshake, the app channel, a fresh token on every reconnect), keeps
  * the capabilities in step with what the mounted components register, tells
  * the agent which view is on screen, and keeps a short activity log the app
- * can show. It imports nothing from React; the hooks in `react.tsx` are thin
- * wrappers around it.
+ * can show. It imports no UI framework: an app without one calls it directly,
+ * and the React and Angular adapters are thin wrappers around it.
  *
  * It connects only inside a Skaile session: the platform embeds an app with the
  * app channel switched on in an iframe whose URL carries `skaileParentOrigin`.
@@ -120,6 +120,17 @@ export interface SkailifyOptions {
   reconnect?: ReconnectOptions | false;
   /** How long a call waits for the view to settle after an action; default 3000 ms, at most {@link MAX_WAIT_MS} */
   settleTimeoutMs?: number;
+  /**
+   * Resolves once the framework has rendered the latest change (Angular: `ApplicationRef.whenStable()`). Settling
+   * waits for it, then for the next frame. A framework adapter sets it; without it settling waits for the next frame.
+   */
+  rendered?: () => Promise<unknown>;
+  /**
+   * Where code runs, for a framework that tracks async work (Angular's zone.js). The connection and the settle timers
+   * run `outside`, so they never keep the app from becoming stable; the handlers run `inside`, so the app sees what
+   * they change. The Angular adapter sets it from `NgZone`; without it everything runs where it is called.
+   */
+  zone?: { inside<T>(fn: () => T): T; outside<T>(fn: () => T): T };
   /** Entries the activity log keeps; default 40 */
   activityLimit?: number;
   /**
@@ -174,7 +185,7 @@ export interface Skailify {
   /** Whether a mounted view says it is still loading */
   loading(): boolean;
   /**
-   * Waits until React has rendered and no mounted view is loading, then tells the agent what is on screen and
+   * Waits until the app has rendered and no mounted view is loading, then tells the agent what is on screen and
    * that it has settled. Resolves false when the timeout came first. The client calls it after every effect.
    */
   settle(timeoutMs?: number): Promise<boolean>;
@@ -182,7 +193,7 @@ export interface Skailify {
   fullName(name: string): string;
   /** The name the agent calls: `board.add_card` → `app.<appId>.board.add_card` */
   agentName(name: string): string;
-  /** For `useSyncExternalStore` */
+  /** For the UI: React's `useSyncExternalStore`, Angular's signals, or a plain listener */
   subscribe(listener: () => void): () => void;
   getSnapshot(): SkailifySnapshot;
   /** Adds a line to the activity log, for events of the app's own */
@@ -270,6 +281,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       }
     },
   };
+  const zone = options.zone ?? { inside: <T>(fn: () => T) => fn(), outside: <T>(fn: () => T) => fn() };
   const settleTimeout = Math.min(options.settleTimeoutMs ?? 3000, MAX_WAIT_MS);
   const activityLimit = options.activityLimit ?? 40;
   const fullName = (name: string) => `app.${name}`;
@@ -282,7 +294,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   let assistant = options.assistant;
   let hostOrigin: string | null = null;
 
-  // ── Snapshot for React ────────────────────────────────────────────────────
+  // ── Snapshot for the UI ───────────────────────────────────────────────────
   let status: ConnectionStatus = { state: "idle" };
   let activity: ActivityEntry[] = [];
   let activitySeq = 0;
@@ -308,7 +320,8 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   const views = new Map<number, { view: ViewRegistration; order: number }>();
   const states = new Map<number, { name: string; read: () => unknown }>();
   const viewListeners = new Set<() => void>();
-  // React's double mount in development removes and re-adds a view in one commit: report once, after it
+  // A view removed and re-added in one render (React's double mount in development, an Angular component re-created in
+  // one change detection) is reported once, after it
   let reportQueued = false;
   const viewChanged = () => {
     for (const listener of [...viewListeners]) listener();
@@ -397,7 +410,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
 
   function settle(timeoutMs = settleTimeout): Promise<boolean> {
     const limit = Math.min(Math.max(timeoutMs, 0), MAX_WAIT_MS);
-    return new Promise<boolean>((resolve) => {
+    return zone.outside(() => new Promise<boolean>((resolve) => {
       let finished = false;
       let rendered = false;
       const finish = (settled: boolean) => {
@@ -416,11 +429,15 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       // the deadline covers the wait for the render too
       const timer = setTimeout(() => finish(!loading()), limit);
       viewListeners.add(check);
-      void afterRender().then(() => {
-        rendered = true;
-        check();
-      });
-    });
+      void Promise.resolve()
+        .then(() => options.rendered?.())
+        .catch(() => undefined)
+        .then(afterRender)
+        .then(() => {
+          rendered = true;
+          check();
+        });
+    }));
   }
 
   // ── Capabilities ──────────────────────────────────────────────────────────
@@ -452,7 +469,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
             app?.loading(action.name);
           }
           try {
-            const result = await action.handler(args, ctx);
+            const result = await zone.inside(() => action.handler(args, ctx));
             log({ direction: "out", label: action.name, detail: summarize(result) });
             return result;
           } catch (error) {
@@ -495,7 +512,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     }));
     wanted = now;
     emit();
-    // React's double mount in development removes and re-adds an action in one commit: send the difference once, after it
+    // An action removed and re-added in one render (a double mount, a re-created component): send the difference once, after it
     if (wireQueued) return;
     wireQueued = true;
     queueMicrotask(flushWire);
@@ -599,7 +616,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     app: null,
     start() {
       if (!started) {
-        started = run().catch((error: unknown) => {
+        started = zone.outside(run).catch((error: unknown) => {
           if (closed) return;
           const message = describe(error);
           logger.error("skailify: could not connect to Skaile", { message });

@@ -28,7 +28,7 @@ import {
 import { type Action, type Selector, Store } from "@ngrx/store";
 import * as z from "zod";
 import { injectSkailify, type InjectOptions } from "./angular";
-import type { AgentAction } from "./client";
+import type { AgentAction } from "@skaile/skailify-core";
 
 /** An action creator from `createAction` or `createActionGroup`: a function with the action's `type` on it. */
 // any: a creator takes whatever props its props() declare

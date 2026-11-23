@@ -24,6 +24,7 @@ the [`@skaile/workspaces`](https://www.npmjs.com/package/@skaile/workspaces) pac
 | Adapter | Folder | Package | Status | What it does |
 |---|---|---|---|---|
 | angular | `frontend/angular/` | [`@skaile/skailify-angular`](https://www.npmjs.com/package/@skaile/skailify-angular) | Available | Angular 20 to 22 apps, zoneless or zone.js: views, state and actions declared with `inject*` functions; NgRx Store actions and selectors, NgRx SignalStore methods and state; Angular Router navigation |
+| core | `frontend/core/` | [`@skaile/skailify-core`](https://www.npmjs.com/package/@skaile/skailify-core) | Available | Apps without a UI framework: the client the React and Angular adapters wrap, as plain function calls, and a `<script>`-tag bundle (`Skailify` global) for pages without a bundler |
 | react | `frontend/react/` | [`@skaile/skailify-react`](https://www.npmjs.com/package/@skaile/skailify-react) | Available | React 18/19 apps, router-agnostic: views, exposed state and actions declared with hooks, over the Skaile app channel |
 | vue-tsm | `frontend/vue-tsm/` | [`@skaile/skailify-vue-tsm`](https://www.npmjs.com/package/@skaile/skailify-vue-tsm) | Available | Vue 3 apps on the tsm module runtime: views, lists, UIModel forms and view actions over the Skaile app channel |
 | emf-mcp | `backend/emf-mcp/` | Built from source | Preliminary | EMF/OSGi backends: generic model tools over MCP, an OAuth resource server for per-user MCP access, and the `/.well-known/skailify.json` manifest |

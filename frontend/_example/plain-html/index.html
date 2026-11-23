@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skailify plain-HTML example</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; padding: 0 1rem; }
+      section { border: 1px solid #ccc; border-radius: 8px; padding: 1rem 1.5rem; }
+      section[hidden] { display: none; }
+      nav { display: flex; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+      #status { color: #666; font-size: 0.875rem; margin-left: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>A three-slide deck</h1>
+    <section data-slide="1"><h2>Welcome</h2><p>No framework, no bundler: one script tag.</p></section>
+    <section data-slide="2" hidden><h2>What the agent sees</h2><p>The slide on screen and the deck's state.</p></section>
+    <section data-slide="3" hidden><h2>What the agent can do</h2><p>Go to a slide, with the same code the buttons use.</p></section>
+    <nav>
+      <button id="prev" type="button">Previous</button>
+      <button id="next" type="button">Next</button>
+      <span id="status"></span>
+    </nav>
+
+    <!--
+      The bundle from @skaile/skailify-core. Build it with `bun run build` in frontend/core, or load it from npm:
+      https://cdn.jsdelivr.net/npm/@skaile/skailify-core@0.1/dist/skailify.iife.js
+    -->
+    <script src="../../core/dist/skailify.iife.js"></script>
+    <script>
+      const { createSkailify, z } = Skailify;
+      const slides = [...document.querySelectorAll("section[data-slide]")];
+      const title = (n) => slides[n - 1].querySelector("h2").textContent;
+
+      // The app id is the id of the app's entry in the workspace's skaile.preview.json.
+      const skailify = createSkailify({ appId: "deck" });
+      let current = 1;
+      const view = skailify.registerView({ id: "slide-1", title: title(1) });
+
+      function show(n) {
+        current = Math.min(Math.max(n, 1), slides.length);
+        slides.forEach((s, i) => (s.hidden = i + 1 !== current));
+        view.update({ id: `slide-${current}`, title: title(current) });
+      }
+
+      // get_view_state answers this alongside the view on screen.
+      skailify.registerState("deck", () => ({ slide: current, slides: slides.length }));
+
+      skailify.registerAction({
+        name: "slides.go_to",
+        description: "Show a slide of the deck by its number, starting at 1.",
+        input: z.object({ slide: z.number().int().min(1) }),
+        kind: "effect",
+        handler: async ({ slide }) => {
+          show(slide);
+          return { slide: current, title: title(current) };
+        },
+      });
+
+      document.getElementById("prev").addEventListener("click", () => show(current - 1));
+      document.getElementById("next").addEventListener("click", () => show(current + 1));
+
+      const status = document.getElementById("status");
+      skailify.subscribe(() => (status.textContent = `Skaile: ${skailify.getSnapshot().status.state}`));
+
+      // Connects only when the page is embedded in a Skaile session; opened on its own it stays standalone.
+      void skailify.start();
+      window.skailify = skailify;
+    </script>
+  </body>
+</html>

@@ -56,6 +56,9 @@
     "conformance": "bun test --preload ./test/setup.ts ./test/conformance",
     "type-check": "tsc --noEmit -p ."
   },
+  "dependencies": {
+    "@skaile/skailify-core": "^0.1.0"
+  },
   "peerDependencies": {
     "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0",
     "@angular/router": "^20.0.0 || ^21.0.0 || ^22.0.0",

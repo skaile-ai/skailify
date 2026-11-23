@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The generic capabilities every React app gets: read what the user sees, and,
+ * The generic capabilities every app gets: read what the user sees, and,
  * when the app hands in its navigation, list the views and show one. They are
  * router-agnostic: the app says what its views are and how to show one.
  */
@@ -19,20 +19,20 @@ export interface ViewDescriptor {
   params?: Record<string, string>;
 }
 
-/** How the agent finds and shows the app's views. Wire it to your router; see the README for react-router. */
+/** How the agent finds and shows the app's views. Wire it to your router, or to whatever shows a view in the app. */
 export interface Navigation {
   /** The app's views; called on every request, so it always answers the current set */
   views: () => ViewDescriptor[];
   /** Shows a view. May return before the view has rendered: the client waits for it to settle. */
   navigate: (viewId: string, params: Record<string, string>) => void | Promise<void>;
-  /** The id of the view on screen, for apps whose views do not call `useAgentView` */
+  /** The id of the view on screen, for apps whose views do not register themselves */
   current?: () => string | undefined;
 }
 
 /** What `get_view_state` and `navigate` answer. */
 export interface ViewState {
   view: { id: string; title?: string; state?: unknown } | null;
-  /** What the mounted components expose with `useAgentState`, by name */
+  /** What the app exposes with `registerState`, by name */
   state: Record<string, unknown>;
   /** The actions available now, by the name the agent calls them (`app.<appId>.<name>`) */
   actions: string[];

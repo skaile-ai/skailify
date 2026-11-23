@@ -15,7 +15,7 @@
  */
 import { inject } from "@angular/core";
 import { Router } from "@angular/router";
-import type { Navigation, ViewDescriptor } from "./capabilities";
+import type { Navigation, ViewDescriptor } from "@skaile/skailify-core";
 
 /** A view the agent may show, and the route that shows it. */
 export interface RouteView extends ViewDescriptor {
