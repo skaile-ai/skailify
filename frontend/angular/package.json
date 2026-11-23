@@ -6,12 +6,12 @@
   "description": "Skailify adapter for Angular apps: makes their views, state, NgRx store and actions agent-controllable over the Skaile app channel",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/skaile-ai/skailify-adapters.git",
+    "url": "git+https://github.com/skaile-ai/skailify.git",
     "directory": "frontend/angular"
   },
-  "homepage": "https://github.com/skaile-ai/skailify-adapters/tree/main/frontend/angular#readme",
+  "homepage": "https://github.com/skaile-ai/skailify/tree/main/frontend/angular#readme",
   "bugs": {
-    "url": "https://github.com/skaile-ai/skailify-adapters/issues"
+    "url": "https://github.com/skaile-ai/skailify/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

@@ -113,7 +113,7 @@ permissions:
 
 jobs:
   adapter:
-    uses: skaile-ai/skailify-adapters/.github/workflows/adapter.yml@<full commit sha>
+    uses: skaile-ai/skailify/.github/workflows/adapter.yml@<full commit sha>
     with:
       path: .
       kind: js

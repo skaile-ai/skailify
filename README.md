@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
-# skailify-adapters
+# skailify
 
 Skailify makes an existing app agent-controllable in [Skaile](https://skaile.ai): an AI agent working in a
 Skaile session can read what the app shows and act in it (open views, fill in forms, call the app's

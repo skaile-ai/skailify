@@ -1,5 +1,5 @@
 {
-  "name": "skailify-adapters",
+  "name": "skailify",
   "private": true,
   "license": "Apache-2.0",
   "description": "Workspace root for the JavaScript Skailify adapters",
