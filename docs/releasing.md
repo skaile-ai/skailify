@@ -69,7 +69,7 @@ To publish a new adapter:
    `files: ["dist", "README.md", "AGENTS.md", "LICENSE"]`, `publishConfig.access: "public"`, and the
    `build`, `prepack` and `check:package` scripts. Copy them from
    [`frontend/react/package.json`](../frontend/react/package.json). `repository.url` must be exactly
-   `git+https://github.com/skaile-ai/skailify-adapters.git`, or npm rejects the provenance.
+   `git+https://github.com/skaile-ai/skailify.git`, or npm rejects the provenance.
 2. Copy `tsdown.config.ts` from `frontend/react/`, add `tsdown` and `publint` as dev dependencies, and
    copy the root `LICENSE` into the folder. A backend adapter that runs on Node sets
    `platform: "node"` in its `tsdown.config.ts`.
@@ -104,7 +104,7 @@ This needs an npm account with publish rights on `@skaile` and two-factor authen
 2. On npmjs.com, open the package, then **Settings → Trusted Publisher**, choose **GitHub Actions**
    and enter:
    - Organization or user: `skaile-ai`
-   - Repository: `skailify-adapters`
+   - Repository: `skailify`
    - Workflow filename: `release.yml`
    - Environment: leave empty
    - Allowed actions: tick **`npm publish`** as well (Changesets publishes with `npm publish`, and a

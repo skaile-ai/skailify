@@ -6,12 +6,12 @@
   "description": "Skailify adapter for React apps: makes their views, state and actions agent-controllable over the Skaile app channel",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/skaile-ai/skailify-adapters.git",
+    "url": "git+https://github.com/skaile-ai/skailify.git",
     "directory": "frontend/react"
   },
-  "homepage": "https://github.com/skaile-ai/skailify-adapters/tree/main/frontend/react#readme",
+  "homepage": "https://github.com/skaile-ai/skailify/tree/main/frontend/react#readme",
   "bugs": {
-    "url": "https://github.com/skaile-ai/skailify-adapters/issues"
+    "url": "https://github.com/skaile-ai/skailify/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

@@ -6,12 +6,12 @@
   "description": "Skailify adapter for Vue 3 apps on the tsm module runtime: makes their views, lists and UIModel forms agent-controllable over the Skaile app channel",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/skaile-ai/skailify-adapters.git",
+    "url": "git+https://github.com/skaile-ai/skailify.git",
     "directory": "frontend/vue-tsm"
   },
-  "homepage": "https://github.com/skaile-ai/skailify-adapters/tree/main/frontend/vue-tsm#readme",
+  "homepage": "https://github.com/skaile-ai/skailify/tree/main/frontend/vue-tsm#readme",
   "bugs": {
-    "url": "https://github.com/skaile-ai/skailify-adapters/issues"
+    "url": "https://github.com/skaile-ai/skailify/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

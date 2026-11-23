@@ -6,12 +6,12 @@
   "description": "Framework-free Skailify client: makes an app's views, state and actions agent-controllable over the Skaile app channel, with a <script>-tag bundle for apps without a bundler",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/skaile-ai/skailify-adapters.git",
+    "url": "git+https://github.com/skaile-ai/skailify.git",
     "directory": "frontend/core"
   },
-  "homepage": "https://github.com/skaile-ai/skailify-adapters/tree/main/frontend/core#readme",
+  "homepage": "https://github.com/skaile-ai/skailify/tree/main/frontend/core#readme",
   "bugs": {
-    "url": "https://github.com/skaile-ai/skailify-adapters/issues"
+    "url": "https://github.com/skaile-ai/skailify/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

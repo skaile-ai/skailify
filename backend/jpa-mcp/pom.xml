@@ -19,7 +19,7 @@
 
   <name>Skailify JPA/MCP adapter</name>
   <description>Spring Boot starter that exposes chosen JPA entities as read-only MCP tools with Skaile action metadata.</description>
-  <url>https://github.com/skaile-ai/skailify-adapters</url>
+  <url>https://github.com/skaile-ai/skailify</url>
 
   <licenses>
     <license>

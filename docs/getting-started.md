@@ -71,8 +71,8 @@ an `app.*` capability.** An MCP server is for reading. The conventions for MCP t
 ## 1. Clone and install
 
 ```sh
-git clone https://github.com/skaile-ai/skailify-adapters.git
-cd skailify-adapters
+git clone https://github.com/skaile-ai/skailify.git
+cd skailify
 bun install
 ```
 
