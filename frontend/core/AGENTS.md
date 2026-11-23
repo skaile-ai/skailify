@@ -15,7 +15,8 @@ The client connects the app to Skaile over the app channel. The app then tells t
 which view is on screen, what state it may read, and which actions it may call; the agent calls them
 as tools, and the platform asks the user first for every action that changes data.
 
-The client registers these capabilities itself (the agent sees each one as `app.<appId>.<name>`):
+The client registers these capabilities itself (declared as `app.<name>`; the agent sees each one as
+`app.<appId>.<name>`):
 
 | Name | Kind | Approval | What it does |
 |---|---|---|---|

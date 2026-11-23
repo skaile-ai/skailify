@@ -20,6 +20,8 @@ afterEach(async () => {
   client = undefined;
   gateway = undefined;
   delete (globalThis as Global).Skailify;
+  delete (globalThis as Global & { skailify?: unknown }).skailify;
+  document.body.innerHTML = "";
 });
 
 function loadBundle(): typeof Core {
@@ -100,6 +102,4 @@ test("the plain-HTML example runs on the bundle: it registers its view, state an
   (document.getElementById("next") as HTMLButtonElement).click();
   expect(client.currentView()).toEqual({ id: "slide-2", title: "What the agent sees" });
   expect(client.readState()).toEqual({ deck: { slide: 2, slides: 3 } });
-  delete (globalThis as Global & { skailify?: unknown }).skailify;
-  document.body.innerHTML = "";
 });
