@@ -23,7 +23,7 @@ import { DestroyRef, inject, isSignal, type Signal } from "@angular/core";
 import { getState, type StateSource } from "@ngrx/signals";
 import * as z from "zod";
 import { injectSkailify, type InjectOptions } from "./angular";
-import type { AgentAction } from "./client";
+import type { AgentAction } from "@skaile/skailify-core";
 
 /** How the agent sees one store method. */
 export type SignalStoreMethodOptions<T extends z.ZodTypeAny = z.ZodTypeAny> = Omit<AgentAction<T>, "handler" | "name" | "input"> & {

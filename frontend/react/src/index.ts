@@ -14,12 +14,6 @@
 export { z } from "zod";
 export type { AppAssistantCorner, AppAssistantPresentation } from "@skaile/workspaces/app-sdk";
 export {
-  type Navigation,
-  type ViewDescriptor,
-  type ViewState,
-  viewState,
-} from "./capabilities.ts";
-export {
   type ActivityEntry,
   type AgentAction,
   agentAction,
@@ -31,8 +25,12 @@ export {
   type SkailifyOptions,
   type SkailifySnapshot,
   skaileParentOrigin,
+  type Navigation,
+  type ViewDescriptor,
   type ViewRegistration,
-} from "./client.ts";
+  type ViewState,
+  viewState,
+} from "@skaile/skailify-core";
 export {
   SkailifyProvider,
   useAgentAction,

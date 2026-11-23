@@ -10,6 +10,7 @@ import { defineAppCapability, type DefineAppCapabilityArgs, type DefinedAppCapab
 import { shallowRef, watch } from 'vue'
 import type { Router } from 'vue-router'
 import * as z from 'zod'
+import { MAX_WAIT_MS } from '@skaile/skailify-core'
 import {
   defaultLabel,
   formName,
@@ -69,8 +70,7 @@ export function defineCapability<T extends z.ZodTypeAny, R extends z.ZodTypeAny 
   return { ...defineAppCapability(rest as DefineAppCapabilityArgs<T, R>), effectClass } as SkailifyCapability
 }
 
-/** The longest a call may wait for the view to settle */
-export const MAX_WAIT_MS = 10_000
+export { MAX_WAIT_MS }
 /** How long the registry must stay quiet after a navigation before the view counts as registered */
 const QUIET_MS = 150
 

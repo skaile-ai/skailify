@@ -7,7 +7,7 @@
  */
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as z from "zod";
-import type { ActivityEntry, AgentAction, CapabilityInfo, ConnectionStatus, Skailify, ViewRegistration } from "./client.ts";
+import type { ActivityEntry, AgentAction, CapabilityInfo, ConnectionStatus, Skailify, ViewRegistration } from "@skaile/skailify-core";
 
 const SkailifyContext = createContext<Skailify | null>(null);
 

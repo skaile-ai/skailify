@@ -11,6 +11,7 @@ short-lived OIDC credential and attaches provenance, and nobody holds an npm tok
 | Package | Folder |
 |---|---|
 | [`@skaile/skailify-angular`](https://www.npmjs.com/package/@skaile/skailify-angular) | `frontend/angular/` |
+| [`@skaile/skailify-core`](https://www.npmjs.com/package/@skaile/skailify-core) | `frontend/core/` |
 | [`@skaile/skailify-react`](https://www.npmjs.com/package/@skaile/skailify-react) | `frontend/react/` |
 | [`@skaile/skailify-vue-tsm`](https://www.npmjs.com/package/@skaile/skailify-vue-tsm) | `frontend/vue-tsm/` |
 
@@ -50,7 +51,8 @@ changesets that were signed off when they landed.
 ## What a published package looks like
 
 Each package builds with [tsdown](https://tsdown.dev) to ESM and type declarations in `dist/`
-(`bun run build`). `prepack` builds as well, so `npm pack` and `npm publish` never ship a stale
+(`bun run build`); `@skaile/skailify-core` also builds `dist/skailify.iife.js`, a single file for a
+`<script>` tag with its dependencies bundled in. `prepack` builds as well, so `npm pack` and `npm publish` never ship a stale
 `dist/`. The tarball holds `dist/`, `README.md`, `AGENTS.md` and `LICENSE`; the sources stay in the
 repository, and the source maps carry them inline for debugging. Peer dependencies (the framework,
 `@skaile/workspaces`, `zod`) stay external, so the app keeps a single copy of each.

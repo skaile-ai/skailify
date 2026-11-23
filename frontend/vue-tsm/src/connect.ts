@@ -15,7 +15,6 @@ import {
   consoleLogger,
   createSkaileApp,
   createWebSocketAppTransport,
-  PARENT_ORIGIN_QUERY_PARAM,
   resolveAppConnectionParams,
   setAssistantPresentation,
   type AppAssistantPresentation,
@@ -26,6 +25,7 @@ import {
   type SessionTokenProvider,
   type SkaileApp,
 } from '@skaile/workspaces/app-sdk'
+import { skaileParentOrigin } from '@skaile/skailify-core'
 import { createBridge, type Bridge, type BridgeOptions, type SkailifyCapability } from './bridge.js'
 import { effectClassRefusal } from './platform.js'
 import { registry as sharedRegistry } from './registry.js'
@@ -71,16 +71,8 @@ export interface SkailifyHandle {
   close(): Promise<void>
 }
 
-/**
- * The embedding host's origin, or null when the app is not embedded in Skaile.
- * Read once at start: the app's own navigation drops the query parameter, and
- * every reconnect needs it.
- */
-export function skaileParentOrigin(windowRef: WindowLike | undefined = globalThis as unknown as WindowLike): string | null {
-  if (!windowRef?.location || !windowRef.parent || windowRef.parent === windowRef) return null
-  const origin = new URLSearchParams(windowRef.location.search).get(PARENT_ORIGIN_QUERY_PARAM)
-  return origin && origin !== '*' && origin !== 'null' ? origin : null
-}
+// From the core client, bundled into this package's build: an app's import map needs no entry for the core.
+export { skaileParentOrigin }
 
 export function startSkailify(options: SkailifyOptions): SkailifyHandle {
   const bridge = createBridge(options)

@@ -119,6 +119,13 @@ jobs:
       java-start-command: java -jar example/target/skailify-jpa-mcp-example.jar
       mcp-url: http://127.0.0.1:8080/mcp
 
+  core:
+    name: core client
+    uses: ./.github/workflows/adapter.yml
+    with:
+      path: frontend/core
+      kind: js
+
   react:
     name: react adapter
     uses: ./.github/workflows/adapter.yml

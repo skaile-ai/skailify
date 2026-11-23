@@ -21,18 +21,18 @@ import {
   untracked,
 } from "@angular/core";
 import type * as z from "zod";
-import type { Navigation } from "./capabilities";
 import {
   type ActivityEntry,
   type AgentAction,
   type CapabilityInfo,
   type ConnectionStatus,
   createSkailify,
+  type Navigation,
   type Skailify,
   type SkailifyOptions,
   type SkailifySnapshot,
   type ViewRegistration,
-} from "./client";
+} from "@skaile/skailify-core";
 
 /** The app's Skailify client. Provided by {@link provideSkailify}. */
 export const SKAILIFY = new InjectionToken<Skailify>("skailify");

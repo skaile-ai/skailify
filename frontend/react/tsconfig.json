@@ -11,7 +11,8 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": { "@skaile/skailify-core": ["../core/src/index.ts"] }
   },
   "include": ["src", "test"]
 }

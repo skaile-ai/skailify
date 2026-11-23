@@ -12,7 +12,10 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "paths": { "@skaile/skailify-core": ["../core/src/index.ts"] }
   },
   "include": ["src", "test"]
 }
