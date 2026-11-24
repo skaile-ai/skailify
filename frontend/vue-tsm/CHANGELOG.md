@@ -1,5 +1,11 @@
 # @skaile/skailify-vue-tsm
 
+## 0.2.1
+
+### Patch Changes
+
+- [#21](https://github.com/skaile-ai/skailify/pull/21) [`470ec91`](https://github.com/skaile-ai/skailify/commit/470ec9144dca6d0977fdfdf6c9c6219b08e0a763) Thanks [@peteralbert](https://github.com/peteralbert)! - The Skailify client now lives in `@skaile/skailify-core`, a framework-free package. The React and Angular adapters depend on it and re-export the same API as before (`SkailifyOptions` gains the optional `rendered` and `zone` hooks the Angular adapter already had); vue-tsm bundles the parts it shares, so an import map needs no new entry.
+
 ## 0.2.0
 
 ### Minor Changes
