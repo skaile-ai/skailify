@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import type { EObject } from '@emfts/core'
 import { noopLogger } from '@skaile/workspaces/app-sdk'
-import { AgentRegistry, startSkailify, z, type SkailifyHandle, type ViewDescriptor } from '../../src/index.js'
+import { AgentRegistry, AppTurnRefusedError, requestAgentTurn, startSkailify, useSkailifyUser, z, type SkailifyHandle, type ViewDescriptor } from '../../src/index.js'
 import { startSkailify as startUnshared } from '../../src/connect.js'
 import { createFakeHost, embedded, standalone, type FakeHost } from '../host.js'
 import { create, get, orderForm } from '../fixture.js'
@@ -411,5 +411,89 @@ describe('view state', () => {
     await host.invoke('app.get_view_state', { wait: 'none' })
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(reports()).toHaveLength(before)
+  })
+})
+
+describe('agent turns and the signed-in user', () => {
+  async function until(predicate: () => boolean, timeoutMs = 1000): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    while (!predicate()) {
+      if (Date.now() > deadline) throw new Error('condition not met in time')
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
+  }
+
+  it('hands work to the agent with turn_request and resolves when the turn starts', async () => {
+    const seen: { text: string; context?: unknown }[] = []
+    await host.gateway.close()
+    host = createFakeHost({ answerTurn: (request) => void seen.push(request) })
+    await start()
+    await handle.requestAgentTurn({ text: 'Check this order', context: { orderId: 'o1' } })
+    expect(seen).toMatchObject([{ type: 'turn_request', text: 'Check this order', context: { orderId: 'o1' } }])
+  })
+
+  it('rejects with the reason from turn_refused', async () => {
+    await host.gateway.close()
+    host = createFakeHost({ answerTurn: () => ({ reason: 'viewer' }) })
+    await start()
+    const error = await handle.requestAgentTurn({ text: 'Check this order' }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(AppTurnRefusedError)
+    expect(error).toMatchObject({ reason: 'viewer' })
+  })
+
+  it('rejects with not_connected standalone', async () => {
+    const standaloneHandle = startUnshared({ appId: 'shop', views: () => VIEWS, router, registry, windowRef: standalone })
+    const error = await standaloneHandle.requestAgentTurn({ text: 'Hi' }).catch((e: unknown) => e)
+    expect(error).toMatchObject({ reason: 'not_connected' })
+    expect(standaloneHandle.user).toBeUndefined()
+  })
+
+  it('has the user from the handshake and follows user_update', async () => {
+    await host.gateway.close()
+    host = createFakeHost({ displayName: 'Ada', sessionRole: 'Owner' })
+    const changes: unknown[] = []
+    await start()
+    expect(handle.user).toEqual({ userId: 'user-1', displayName: 'Ada', sessionRole: 'Owner' })
+    handle.onUserChange((user) => changes.push(user))
+    host.gateway.userUpdate({ displayName: 'Ada L.' })
+    await until(() => handle.user?.displayName === 'Ada L.')
+    expect(changes).toEqual([{ userId: 'user-1', displayName: 'Ada L.', sessionRole: 'Owner' }])
+  })
+
+  it('the shared requestAgentTurn and useSkailifyUser follow the started page', async () => {
+    const seen: string[] = []
+    await host.gateway.close()
+    host = createFakeHost({ displayName: 'Ada', sessionRole: 'User', answerTurn: (request) => void seen.push(request.text) })
+    const user = useSkailifyUser()
+    handle = startSkailify({
+      appId: 'shop', views: () => VIEWS, router, logger: noopLogger, windowRef: embedded,
+      resolveParams: host.resolveParams, createTransport: host.createTransport,
+    })
+    await handle.ready
+    await until(() => user.value !== undefined)
+    expect(user.value).toEqual({ userId: 'user-1', displayName: 'Ada', sessionRole: 'User' })
+    await requestAgentTurn({ text: 'Check this order' })
+    expect(seen).toEqual(['Check this order'])
+    host.gateway.userUpdate({ sessionRole: 'Viewer' })
+    await until(() => user.value?.sessionRole === 'Viewer')
+  })
+
+  it('useSkailifyUser follows a replacing startSkailify and clears on a drop', async () => {
+    const first = createFakeHost({ displayName: 'Ada' })
+    const startShared = (h: FakeHost) => startSkailify({
+      appId: 'shop', views: () => VIEWS, router, logger: noopLogger, windowRef: embedded,
+      resolveParams: h.resolveParams, createTransport: h.createTransport,
+    })
+    const user = useSkailifyUser()
+    await startShared(first).ready
+    await until(() => user.value?.displayName === 'Ada')
+    await host.gateway.close()
+    host = createFakeHost({ displayName: 'Grace' })
+    handle = startShared(host)
+    await handle.ready
+    await until(() => user.value?.displayName === 'Grace')
+    host.gateway.drop()
+    await until(() => user.value === undefined)
+    await first.gateway.close()
   })
 })

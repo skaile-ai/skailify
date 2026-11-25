@@ -5,7 +5,8 @@
  * host handshake, the app channel, a fresh token on every reconnect), keeps
  * the capabilities in step with what the mounted components register, tells
  * the agent which view is on screen, and keeps a short activity log the app
- * can show. It imports no UI framework: an app without one calls it directly,
+ * can show. It also lets the app hand work to the agent (`requestAgentTurn`)
+ * and read the signed-in user (`user`). It imports no UI framework: an app without one calls it directly,
  * and the React and Angular adapters are thin wrappers around it.
  *
  * It connects only inside a Skaile session: the platform embeds an app with the
@@ -19,6 +20,9 @@ import {
   type AppLogger,
   type AppSession,
   type AppTransport,
+  AppTurnRefusedError,
+  type AppTurnRequest,
+  type AppUser,
   type AppViewReport,
   consoleLogger,
   createSkaileApp,
@@ -99,6 +103,8 @@ export interface SkailifySnapshot {
   status: ConnectionStatus;
   activity: readonly ActivityEntry[];
   capabilities: readonly CapabilityInfo[];
+  /** The signed-in user while connected (see {@link Skailify.user}) */
+  user: AppUser | undefined;
 }
 
 interface WindowLike {
@@ -198,6 +204,21 @@ export interface Skailify {
   getSnapshot(): SkailifySnapshot;
   /** Adds a line to the activity log, for events of the app's own */
   log(entry: Omit<ActivityEntry, "id" | "at">): void;
+  /**
+   * Asks the agent to act now: Skaile starts a turn with `text` as the signed-in user's own message, marked as sent
+   * through the app; `context` (JSON-serialisable) goes along as detail. Resolves once the turn started; rejects with
+   * an `AppTurnRefusedError` naming the reason (`viewer`, `rate_limited` with `retryAfterMs`, `not_declared`,
+   * `not_connected`, `timeout`, …). Standalone or before the connection it rejects with `not_connected`. For a note the
+   * agent should read later, not now, report it in the view state instead.
+   */
+  requestAgentTurn(request: AppTurnRequest): Promise<void>;
+  /**
+   * The signed-in user who opened the app: `{ userId, displayName?, sessionRole? }`. Undefined standalone, before the
+   * connection, while reconnecting, and when Skaile does not say. Also in {@link getSnapshot}.
+   */
+  readonly user: AppUser | undefined;
+  /** Calls `handler` whenever {@link user} changes (a connect, a change of name or role, a lost connection); returns the unsubscribe. */
+  onUserChange(handler: (user: AppUser | undefined) => void): () => void;
 }
 
 /** The longest a call may wait for the view to settle */
@@ -299,10 +320,12 @@ export function createSkailify(options: SkailifyOptions): Skailify {
   let activity: ActivityEntry[] = [];
   let activitySeq = 0;
   let capabilityInfo: CapabilityInfo[] = [];
-  let snapshot: SkailifySnapshot = { status, activity, capabilities: capabilityInfo };
+  let user: AppUser | undefined;
+  let snapshot: SkailifySnapshot = { status, activity, capabilities: capabilityInfo, user };
   const listeners = new Set<() => void>();
+  const userListeners = new Set<(user: AppUser | undefined) => void>();
   const emit = () => {
-    snapshot = { status, activity, capabilities: capabilityInfo };
+    snapshot = { status, activity, capabilities: capabilityInfo, user };
     for (const listener of [...listeners]) listener();
   };
   const setStatus = (next: ConnectionStatus) => {
@@ -537,14 +560,28 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     sync();
     flushWire();
     reportIfChanged(true);
+    const current = app;
+    app.onUserChange((next) => {
+      user = next;
+      emit();
+      for (const handler of [...userListeners]) {
+        try {
+          handler(next);
+        } catch (error) {
+          logger.error("skailify: a user change handler threw", { message: describe(error) });
+        }
+      }
+    });
     app.onSessionChange((session: AppSession | null) => {
+      // The SDK tells session listeners before user listeners: take the user now, so no snapshot pairs a status with a stale user.
+      user = current.user;
       if (session) {
         // the SDK replays the last report and phase on a bind; they are kept current while disconnected
         setStatus({ state: "connected", sessionId: session.sessionId, userId: session.userId });
         log({ direction: "out", label: "connected", detail: `session ${session.sessionId}` });
       } else if (!closed) {
-        log({ direction: "out", label: "disconnected" });
         setStatus(options.reconnect === false ? { state: "error", message: "connection lost" } : { state: "reconnecting" });
+        log({ direction: "out", label: "disconnected" });
       }
     });
     if (closed) {
@@ -684,7 +721,37 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     },
     getSnapshot: () => snapshot,
     log,
+    requestAgentTurn(request) {
+      // The answer arrives outside the zone; settle inside it so the caller's `.then` and `.catch` reach change detection.
+      return new Promise<void>((resolve, reject) => {
+        requestTurn(request).then(
+          () => zone.inside(resolve),
+          (error: unknown) => zone.inside(() => reject(error)),
+        );
+      });
+    },
+    get user() {
+      return user;
+    },
+    onUserChange(handler) {
+      userListeners.add(handler);
+      return () => {
+        userListeners.delete(handler);
+      };
+    },
   };
+
+  async function requestTurn(request: AppTurnRequest): Promise<void> {
+    try {
+      if (!app) throw new AppTurnRefusedError("not_connected");
+      await app.requestAgentTurn(request);
+      log({ direction: "out", label: "agent turn", detail: summarize(request.text) });
+    } catch (error) {
+      const detail = error instanceof AppTurnRefusedError ? error.reason : describe(error);
+      log({ direction: "out", label: "agent turn refused", detail, error: true });
+      throw error;
+    }
+  }
 
   generic.push(...genericCapabilities(handle, options.navigation));
   sync();

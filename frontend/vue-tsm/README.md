@@ -127,10 +127,32 @@ Skaile picks the place itself. To change the hints while the app runs, for examp
 over a full-screen editor, call `skailify.setAssistant({ kind: 'none' })`. Once the user has dragged the button, their place wins
 over `corner` and `offset`.
 
+### Handing work to the agent, and the signed-in user
+
+```ts
+import { AppTurnRefusedError, requestAgentTurn, useSkailifyUser } from '@skaile/skailify-vue-tsm'
+
+const user = useSkailifyUser() // ComputedRef<{ userId, displayName?, sessionRole? } | undefined>
+async function askSkaile(order: Order) {
+  try {
+    await requestAgentTurn({ text: 'Check this order', context: { orderId: order.id } })
+  } catch (error) {
+    if (error instanceof AppTurnRefusedError) notify(`Skaile did not take it: ${error.reason}`)
+  }
+}
+```
+
+`requestAgentTurn` starts a turn with the text as the signed-in user's message, marked as sent
+through the app. It resolves once the turn started and rejects with an `AppTurnRefusedError` whose
+`reason` says why not (`not_connected` before `startSkailify` or standalone, `viewer`, `rate_limited`
+with `retryAfterMs`, `not_declared`, `timeout`, …). `useSkailifyUser()` follows a change of name or
+role and is `undefined` standalone or while the connection is down. The handle carries the same as
+`handle.requestAgentTurn`, `handle.user` and `handle.onUserChange`.
+
 ## SDK version
 
-Peer `@skaile/workspaces` ^10.14.0, the first version that sends the agent button hints
-(`assistant`); CI tests the lowest version in that range and npm `latest`. Its app-sdk carries the effect class
+Peer `@skaile/workspaces` ^10.17.0, the first version with agent turns and the signed-in user;
+CI tests the lowest version in that range and npm `latest`. Its app-sdk carries the effect class
 and the principal itself: `effectClass` goes out on `capability_register`, and every handler gets
 `ctx.principal`. A declaration the gateway would refuse
 (an effect class above `routine` without `requiresApproval: true`) is not handed to the SDK, which throws

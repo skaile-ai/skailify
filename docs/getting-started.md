@@ -44,6 +44,16 @@ an `app.*` capability.** An MCP server is for reading. The conventions for MCP t
   cookies of requests to the app. A client sends the app's own bearer token as
   `X-Skaile-Preview-Authorization: Bearer <token>` instead, and the app's backend reads that header
   when `Authorization` is absent. A real `Authorization` header always wins.
+- **Handing work to the agent, and the signed-in user.** Since `@skaile/workspaces` 10.17.0 an app
+  can ask the agent to act now with `app.requestAgentTurn({ text, context })`: the platform starts a
+  turn with the text as the signed-in user's own message, marked as sent through the app, or refuses
+  it with a reason (`viewer`, `rate_limited` with `retryAfterMs`, `not_declared`). The app reads the
+  signed-in user as `app.user` (`userId`, `displayName`, `sessionRole`) and hears a change through
+  `onUserChange`. Every JavaScript adapter surfaces both (`requestAgentTurn` and `user` on the core
+  client, a hook in React, a signal in Angular, a composable in Vue). A platform that does not answer
+  `turn_request` yet never answers, so the call rejects with `timeout` after 10 s, and it leaves
+  `displayName` and `sessionRole` out. Handle the rejection: show the reason, offer a retry. For a
+  note the agent should read later rather than now, report it in the view state instead.
 - **An MCP server for reads and queries.** Add the app's MCP server in Skaile by hand, like any other
   remote MCP server. Its tools describe themselves with Skaile action metadata in `_meta`
   ([MCP conventions](mcp-conventions.md)). `skailify-check-mcp` checks that metadata; **the

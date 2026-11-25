@@ -23,7 +23,7 @@
     },
     "frontend/angular": {
       "name": "@skaile/skailify-angular",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@skaile/skailify-core": "^0.1.0",
       },
@@ -36,7 +36,7 @@
         "@happy-dom/global-registrator": "^20.0.0",
         "@ngrx/signals": "^22.0.0",
         "@ngrx/store": "^22.0.0",
-        "@skaile/workspaces": "10.14.0",
+        "@skaile/workspaces": "10.17.0",
         "@types/bun": "^1.3.0",
         "publint": "0.3.25",
         "rxjs": "^7.8.0",
@@ -49,7 +49,7 @@
         "@angular/router": "^20.0.0 || ^21.0.0 || ^22.0.0",
         "@ngrx/signals": "^20.0.0 || ^21.0.0 || ^22.0.0",
         "@ngrx/store": "^20.0.0 || ^21.0.0 || ^22.0.0",
-        "@skaile/workspaces": "^10.14.0",
+        "@skaile/workspaces": "^10.17.0",
         "zod": "^4.4.0",
       },
       "optionalPeers": [
@@ -63,7 +63,7 @@
       "version": "0.1.0",
       "devDependencies": {
         "@happy-dom/global-registrator": "^20.0.0",
-        "@skaile/workspaces": "10.14.0",
+        "@skaile/workspaces": "10.17.0",
         "@types/bun": "^1.3.0",
         "publint": "0.3.25",
         "tsdown": "0.23.7",
@@ -71,19 +71,19 @@
         "zod": "^4.4.0",
       },
       "peerDependencies": {
-        "@skaile/workspaces": "^10.14.0",
+        "@skaile/workspaces": "^10.17.0",
         "zod": "^4.4.0",
       },
     },
     "frontend/react": {
       "name": "@skaile/skailify-react",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@skaile/skailify-core": "^0.1.0",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "^20.0.0",
-        "@skaile/workspaces": "10.14.0",
+        "@skaile/workspaces": "10.17.0",
         "@types/bun": "^1.3.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
@@ -95,20 +95,20 @@
         "zod": "^4.4.0",
       },
       "peerDependencies": {
-        "@skaile/workspaces": "^10.14.0",
+        "@skaile/workspaces": "^10.17.0",
         "react": "^18.3.0 || ^19.0.0",
         "zod": "^4.4.0",
       },
     },
     "frontend/vue-tsm": {
       "name": "@skaile/skailify-vue-tsm",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "@eclipse-daanse/tsm": "0.1.0-next.1",
         "@emfts/core": "0.3.0-next.4",
         "@emfts/uimodel-composer": "0.0.2-next.1",
         "@skaile/skailify-core": "^0.1.0",
-        "@skaile/workspaces": "10.14.0",
+        "@skaile/workspaces": "10.17.0",
         "@types/bun": "^1.3.12",
         "publint": "0.3.25",
         "tsdown": "0.23.7",
@@ -122,7 +122,7 @@
         "@eclipse-daanse/tsm": "~0.1.0-next.1",
         "@emfts/core": "~0.3.0-next.4",
         "@emfts/uimodel-composer": "~0.0.2-next.1",
-        "@skaile/workspaces": "^10.14.0",
+        "@skaile/workspaces": "^10.17.0",
         "vue": "^3.5.0",
         "vue-router": "^5.0.0",
         "zod": "^4.4.0",
@@ -341,7 +341,7 @@
 
     "@sindresorhus/is": ["@sindresorhus/is@4.6.0", "", {}, "sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw=="],
 
-    "@skaile/provider-registry": ["@skaile/provider-registry@0.1.1", "", { "dependencies": { "yaml": "^2.7.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "ai": "^7.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "ai"] }, "sha512-2g1yrOYxv+Yxp3B3gEbEpamyIm9wdZd+mgFeCnG8c3yBV2bagO4S4lqytFj18AvzL4MreoaDh6cc0FdSK31u4g=="],
+    "@skaile/provider-registry": ["@skaile/provider-registry@0.1.2", "", { "dependencies": { "yaml": "^2.7.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "ai": "^7.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "ai"] }, "sha512-DArsJVwlWV7zF5ol6sQ6wxCLyHC6DokI1MCGCXbCaIRYjHDwk7Ybo9UyuEpEubrqRM6gVXtowS9Mkk0+9WWp/g=="],
 
     "@skaile/skailify-angular": ["@skaile/skailify-angular@workspace:frontend/angular"],
 
@@ -353,7 +353,7 @@
 
     "@skaile/skailify-vue-tsm": ["@skaile/skailify-vue-tsm@workspace:frontend/vue-tsm"],
 
-    "@skaile/workspaces": ["@skaile/workspaces@10.14.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.1", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-CF+tCItWHB6C0cIHgE8+zSPvzsgNq66EHogjxFHdx2AnBQeeXGndxop4LUQfzjjqoVSiXR8tKOTJCfRemz9//w=="],
+    "@skaile/workspaces": ["@skaile/workspaces@10.17.0", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@clack/prompts": "^1.4.0", "@libsql/client": "^0.17.3", "@modelcontextprotocol/sdk": "^1.27.1", "@octokit/rest": "22.0.1", "@skaile/provider-registry": "^0.1.2", "@trpc/client": "^11.10.0", "ajv": "^8.17.1", "chokidar": "^5.0.0", "commander": "^14.0.0", "drizzle-orm": "^0.45.2", "fast-glob": "^3.3", "js-yaml": "^4.1.0", "marked": "15", "marked-terminal": "^7.3.0", "mime": "^4.0.0", "picocolors": "^1.1.1", "semver": "^7.8.1", "smol-toml": "^1.3.4", "ulid": "^3.0.2", "ws": "^8.21.0", "yaml": "^2.7.0", "zod": "^4.4.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "@anthropic-ai/claude-agent-sdk": "^0.3.289", "@aws-sdk/client-s3": ">=3.0.0", "@aws-sdk/s3-request-presigner": ">=3.0.0", "@earendil-works/pi-ai": "^1.5.0", "@microsoft/microsoft-graph-client": ">=3.0.0", "@microsoft/microsoft-graph-types": ">=2.0.0", "@openai/codex-sdk": ">=0.160.0 <0.170.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/exporter-trace-otlp-http": "^0.218.0", "@opentelemetry/resources": "^2.7.0", "@opentelemetry/sdk-trace-node": "^2.7.0", "@opentelemetry/semantic-conventions": "^1.40.0", "@skaile/transform-proxy": "^0.5.0", "@types/node": "*", "@xstate/store": "^3.0.0", "ai": "^7.0.0", "googleapis": ">=140.0.0", "minio": "^8.0.0", "pg": ">=8.12.0", "react": ">=18", "sql.js": ">=1.0.0", "vue": ">=3.3", "webdav": ">=5.0.0", "xstate": ">=5.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "@anthropic-ai/claude-agent-sdk", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@earendil-works/pi-ai", "@microsoft/microsoft-graph-client", "@microsoft/microsoft-graph-types", "@openai/codex-sdk", "@opentelemetry/api", "@opentelemetry/exporter-trace-otlp-http", "@opentelemetry/resources", "@opentelemetry/sdk-trace-node", "@opentelemetry/semantic-conventions", "@skaile/transform-proxy", "@types/node", "@xstate/store", "ai", "googleapis", "minio", "pg", "react", "sql.js", "vue", "webdav", "xstate"], "bin": { "skaile": "dist/cli/index.js", "skailify-check-mcp": "bin/skailify-check-mcp.mjs" } }, "sha512-Y2cHVir/4wJh/xxG+yvzd5DC2Uohi0mRYNEoAOZ5YWPPI52xYnjSUbg4Lu+CArB+xSAbZfvdbPi3YZ0LoCZ8Lg=="],
 
     "@trpc/client": ["@trpc/client@11.28.3", "", { "peerDependencies": { "@trpc/server": "11.28.3", "typescript": ">=5.7.2" } }, "sha512-NnMXBOCVzPMELdQH/X26MhI4u9g83nxWy3apc7UX1beevUk6rEYqfOboqCb/rVoVPu3CBVaPb8PB7AG51oEKvQ=="],
 
@@ -1064,6 +1064,8 @@
     "@octokit/plugin-paginate-rest/@octokit/types/@octokit/openapi-types": ["@octokit/openapi-types@27.0.0", "", {}, "sha512-whrdktVs1h6gtR+09+QsNk2+FO+49j6ga1c55YZudfEG+oKJVvJLQi3zkOm5JjiUXAagWK2tI2kTGKJ2Ys7MGA=="],
 
     "@octokit/plugin-rest-endpoint-methods/@octokit/types/@octokit/openapi-types": ["@octokit/openapi-types@27.0.0", "", {}, "sha512-whrdktVs1h6gtR+09+QsNk2+FO+49j6ga1c55YZudfEG+oKJVvJLQi3zkOm5JjiUXAagWK2tI2kTGKJ2Ys7MGA=="],
+
+    "@skaile/skailify-example/@skaile/workspaces/@skaile/provider-registry": ["@skaile/provider-registry@0.1.1", "", { "dependencies": { "yaml": "^2.7.0" }, "peerDependencies": { "@ai-sdk/anthropic": "^4.0.0", "@ai-sdk/openai": "^4.0.0", "@ai-sdk/openai-compatible": "^3.0.0", "ai": "^7.0.0" }, "optionalPeers": ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/openai-compatible", "ai"] }, "sha512-2g1yrOYxv+Yxp3B3gEbEpamyIm9wdZd+mgFeCnG8c3yBV2bagO4S4lqytFj18AvzL4MreoaDh6cc0FdSK31u4g=="],
 
     "ast-walker-scope/ast-kit/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 

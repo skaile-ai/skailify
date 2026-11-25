@@ -4,7 +4,7 @@ import { afterEach, expect, test } from "bun:test";
 import { type AppLogger, type AppTransport, noopLogger } from "@skaile/workspaces/app-sdk";
 import { createFakeGateway, type FakeGateway } from "@skaile/workspaces/app-sdk/testing";
 import * as z from "zod";
-import { createSkailify, type Skailify, type SkailifyOptions } from "../../src/index.ts";
+import { AppTurnRefusedError, createSkailify, type Skailify, type SkailifyOptions } from "../../src/index.ts";
 
 let gateway: FakeGateway | undefined;
 let client: Skailify | undefined;
@@ -555,4 +555,93 @@ test("a failure to send the hints is logged and does not throw", async () => {
   await started;
   expect(() => client.setAssistant(HIDDEN)).not.toThrow();
   expect(warnings).toEqual(["skailify: could not send the assistant hints"]);
+});
+
+// ── Agent turns and the signed-in user ─────────────────────────────────────
+
+async function connectedTo(g: FakeGateway, options: Partial<SkailifyOptions> = {}): Promise<Skailify> {
+  gateway = g;
+  client = createSkailify({ appId: "test", transport: g.transport(), reconnect: false, logger: noopLogger, ...options });
+  await client.start();
+  return client;
+}
+
+test("requestAgentTurn sends turn_request with the text and context, and resolves when the turn starts", async () => {
+  const seen: unknown[] = [];
+  const c = await connectedTo(createFakeGateway({ answerTurn: (request) => void seen.push(request) }));
+  await c.requestAgentTurn({ text: "Work through the comments", context: { slide: 3 } });
+  expect(seen).toEqual([expect.objectContaining({ type: "turn_request", text: "Work through the comments", context: { slide: 3 } })]);
+  expect(c.getSnapshot().activity[0]).toMatchObject({ direction: "out", label: "agent turn", detail: "Work through the comments" });
+});
+
+test("requestAgentTurn rejects with the gateway's reason when the turn is refused", async () => {
+  const c = await connectedTo(createFakeGateway({ answerTurn: () => ({ reason: "rate_limited", retryAfterMs: 2000 }) }));
+  const error = await c.requestAgentTurn({ text: "Again" }).catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(AppTurnRefusedError);
+  expect(error).toMatchObject({ reason: "rate_limited", retryAfterMs: 2000 });
+  expect(c.getSnapshot().activity[0]).toMatchObject({ label: "agent turn refused", detail: "rate_limited", error: true });
+});
+
+test("standalone, requestAgentTurn rejects with not_connected and the user is undefined", async () => {
+  client = createSkailify({ appId: "test", windowRef: { parent: null, location: { search: "" } }, logger: noopLogger });
+  await client.start();
+  const error = await client.requestAgentTurn({ text: "Hi" }).catch((e: unknown) => e);
+  expect(error).toMatchObject({ reason: "not_connected" });
+  expect(client.getSnapshot().activity[0]).toMatchObject({ label: "agent turn refused", detail: "not_connected", error: true });
+  expect(client.user).toBeUndefined();
+  expect(client.getSnapshot().user).toBeUndefined();
+});
+
+test("no snapshot pairs the connection status with a stale user, on connect or on a drop", async () => {
+  const g = createFakeGateway({ userId: "u1", displayName: "Ada" });
+  const pairs: [string, string | undefined][] = [];
+  client = createSkailify({ appId: "test", transport: g.transport(), reconnect: false, logger: noopLogger });
+  gateway = g;
+  client.subscribe(() => {
+    const { status, user } = client!.getSnapshot();
+    pairs.push([status.state, user?.userId]);
+  });
+  await client.start();
+  g.drop();
+  await until(() => client?.getSnapshot().status.state === "error");
+  expect(pairs.filter(([state, userId]) => (state === "connected") !== (userId === "u1"))).toEqual([]);
+  expect(pairs.map(([state]) => state)).toContain("connected");
+});
+
+test("the user comes from the handshake, follows user_update, and is cleared when the connection drops", async () => {
+  const g = createFakeGateway({ userId: "u1", displayName: "Ada", sessionRole: "Owner" });
+  const changes: unknown[] = [];
+  const snapshots: unknown[] = [];
+  client = createSkailify({ appId: "test", transport: g.transport(), reconnect: false, logger: noopLogger });
+  gateway = g;
+  client.onUserChange((user) => changes.push(user));
+  client.subscribe(() => snapshots.push(client?.getSnapshot().user));
+  await client.start();
+  expect(client.user).toEqual({ userId: "u1", displayName: "Ada", sessionRole: "Owner" });
+  expect(client.getSnapshot().user).toEqual(client.user);
+
+  g.userUpdate({ sessionRole: "Viewer" });
+  await until(() => client?.user?.sessionRole === "Viewer");
+  expect(client.user).toEqual({ userId: "u1", displayName: "Ada", sessionRole: "Viewer" });
+  expect(snapshots).toContainEqual({ userId: "u1", displayName: "Ada", sessionRole: "Viewer" });
+
+  g.drop();
+  await until(() => client?.user === undefined);
+  expect(changes).toEqual([
+    { userId: "u1", displayName: "Ada", sessionRole: "Owner" },
+    { userId: "u1", displayName: "Ada", sessionRole: "Viewer" },
+    undefined,
+  ]);
+  expect(client.getSnapshot().user).toBeUndefined();
+});
+
+test("onUserChange returns the unsubscribe", async () => {
+  const g = createFakeGateway({ userId: "u1", displayName: "Ada" });
+  const changes: unknown[] = [];
+  const c = await connectedTo(g);
+  const stop = c.onUserChange((user) => changes.push(user));
+  stop();
+  g.userUpdate({ displayName: "Ada L." });
+  await until(() => c.user?.displayName === "Ada L.");
+  expect(changes).toEqual([]);
 });

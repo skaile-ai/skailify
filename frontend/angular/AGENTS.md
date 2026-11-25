@@ -39,11 +39,14 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
   approval.
 - Actions exist only while the app is open in the session and the component or service that
   registers them lives.
+- **Handing work to the agent.** `injectRequestAgentTurn()` returns the function that starts an agent
+  turn as the signed-in user's message; it rejects with an `AppTurnRefusedError` (`reason`) when
+  Skaile refuses or does not answer. `injectSkailifyUser()` is the signed-in user as a signal.
 
 ## Prerequisites
 
 - Angular 20, 21 or 22, zoneless or with zone.js
-- `@skaile/workspaces` `^10.14.0` (the app SDK, `@skaile/workspaces/app-sdk`)
+- `@skaile/workspaces` `^10.17.0` (the app SDK, `@skaile/workspaces/app-sdk`)
 - `zod` `^4.4.0`: major 4, because the SDK turns your schemas into JSON Schema with it
 - Optional: `@angular/router`, `@ngrx/store`, `@ngrx/signals` 20 to 22, if the app uses them
 - The app's id: the `id` of its entry in the workspace's `skaile.preview.json`

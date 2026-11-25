@@ -91,6 +91,29 @@ useAgentAction({
 For a panel in the app's own UI: `useSkailifyStatus()`, `useSkailifyCapabilities()` and
 `useSkailifyActivity()` (the agent's latest calls and the connection events, newest first).
 
+### Handing work to the agent, and the signed-in user
+
+```tsx
+function AskSkaile({ cardId }: { cardId: string }) {
+  const user = useSkailifyUser(); // { userId, displayName?, sessionRole? } while connected
+  const requestAgentTurn = useRequestAgentTurn();
+  return (
+    <button
+      disabled={!user || user.sessionRole === "Viewer"}
+      onClick={() => requestAgentTurn({ text: "Review this card", context: { cardId } }).catch(showError)}
+    >
+      Ask Skaile
+    </button>
+  );
+}
+```
+
+`requestAgentTurn` starts a turn with the text as the signed-in user's message, marked as sent
+through the app. It resolves once the turn started and rejects with an `AppTurnRefusedError` whose
+`reason` says why not (`not_connected`, `viewer`, `rate_limited` with `retryAfterMs`, `not_declared`,
+`timeout`, …). `useSkailifyUser` re-renders when the user's name or role changes, and is `undefined`
+standalone or while the connection is down.
+
 ### Navigation (optional)
 
 Hand the client your views and how to show one, and the agent gets `list_views` and `navigate`. With
@@ -139,7 +162,7 @@ the capabilities and the agent's calls. The tests drive it through the app SDK's
 
 ## SDK version
 
-Peer `@skaile/workspaces` ^10.14.0, the first version that sends the agent button hints (`assistant`).
+Peer `@skaile/workspaces` ^10.17.0, the first version with agent turns and the signed-in user.
 CI runs the tests and the conformance checks against the lowest and the latest version in that range
 with React 19; React 18.3.1 was tested by hand.
 

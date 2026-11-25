@@ -16,7 +16,7 @@ import {
 } from "@angular/core";
 import { type ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter, Router, RouterOutlet } from "@angular/router";
-import { createFakeGateway, type FakeGateway } from "@skaile/workspaces/app-sdk/testing";
+import { createFakeGateway, type FakeGateway, type FakeGatewayOptions } from "@skaile/workspaces/app-sdk/testing";
 import { type AppLogger, noopLogger } from "@skaile/workspaces/app-sdk";
 import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
 import { rxMethod } from "@ngrx/signals/rxjs-interop";
@@ -24,9 +24,12 @@ import { createAction, createSelector, props, provideStore } from "@ngrx/store";
 import { tap } from "rxjs";
 import * as z from "zod";
 import {
+  AppTurnRefusedError,
   injectAgentAction,
   injectAgentState,
   injectAgentView,
+  injectRequestAgentTurn,
+  injectSkailifyUser,
   provideSkailify,
   SKAILIFY,
   type Skailify,
@@ -50,8 +53,9 @@ async function mount<T>(
   providers: (g: FakeGateway) => Array<Provider | EnvironmentProviders> = (g) => [
     provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger }),
   ],
+  gatewayOptions: FakeGatewayOptions = {},
 ): Promise<{ gateway: FakeGateway; client: Skailify; fixture: ComponentFixture<T>; el: HTMLElement }> {
-  gateway = createFakeGateway();
+  gateway = createFakeGateway(gatewayOptions);
   TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), ...providers(gateway)] });
   const fixture = TestBed.createComponent(component);
   fixture.autoDetectChanges();
@@ -495,4 +499,67 @@ test("provideSkailify connects and settles outside the Angular zone, and runs ha
   zone.calls.length = 0;
   await gateway.invoke("app.detail.open", { id: "a" });
   expect(zone.calls.slice(0, 2)).toEqual(["inside", "outside"]); // the handler, then settling
+});
+
+async function until(predicate: () => boolean, timeoutMs = 1000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error("condition not met in time");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+@Component({
+  selector: "t-ask",
+  template: `<p class="user">{{ user() ? user()?.displayName + " (" + user()?.sessionRole + ")" : "nobody" }}</p>`,
+})
+class AskSkaileComponent {
+  readonly user = injectSkailifyUser();
+  readonly ask = injectRequestAgentTurn();
+}
+
+test("injectRequestAgentTurn hands work to the agent and resolves when the turn starts", async () => {
+  const seen: { text: string; context?: unknown }[] = [];
+  const { fixture } = await mount(AskSkaileComponent, undefined, { answerTurn: (request) => void seen.push(request) });
+  await fixture.componentInstance.ask({ text: "Review this card", context: { cardId: "card-1" } });
+  expect(seen).toMatchObject([{ text: "Review this card", context: { cardId: "card-1" } }]);
+});
+
+test("injectRequestAgentTurn rejects with the reason when the turn is refused", async () => {
+  const { fixture } = await mount(AskSkaileComponent, undefined, { answerTurn: () => ({ reason: "rate_limited", retryAfterMs: 500 }) });
+  const error = await fixture.componentInstance.ask({ text: "Again" }).catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(AppTurnRefusedError);
+  expect(error).toMatchObject({ reason: "rate_limited", retryAfterMs: 500 });
+});
+
+test("injectRequestAgentTurn settles inside the Angular zone, for accept and refuse", async () => {
+  const zone = new RecordingZone();
+  let refuse = false;
+  const { fixture } = await mount(
+    AskSkaileComponent,
+    (g) => [
+      { provide: NgZone, useValue: zone },
+      provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger }),
+    ],
+    { answerTurn: () => (refuse ? { reason: "viewer" } : undefined) },
+  );
+  zone.calls.length = 0;
+  await fixture.componentInstance.ask({ text: "Go" });
+  expect(zone.calls.at(-1)).toBe("inside");
+  zone.calls.length = 0;
+  refuse = true;
+  await fixture.componentInstance.ask({ text: "Again" }).catch(() => undefined);
+  expect(zone.calls.at(-1)).toBe("inside");
+});
+
+test("injectSkailifyUser is a signal of the signed-in user that follows user_update", async () => {
+  const { gateway, fixture, el } = await mount(AskSkaileComponent, undefined, { userId: "u1", displayName: "Ada", sessionRole: "Owner" });
+  expect(fixture.componentInstance.user()).toEqual({ userId: "u1", displayName: "Ada", sessionRole: "Owner" });
+  expect(el.querySelector(".user")?.textContent).toBe("Ada (Owner)");
+  gateway.userUpdate({ sessionRole: "Viewer" });
+  await until(() => fixture.componentInstance.user()?.sessionRole === "Viewer");
+  await fixture.whenStable();
+  expect(el.querySelector(".user")?.textContent).toBe("Ada (Viewer)");
+  gateway.drop();
+  await until(() => fixture.componentInstance.user() === undefined);
 });

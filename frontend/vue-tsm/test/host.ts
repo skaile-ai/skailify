@@ -4,10 +4,13 @@
  * The embedding host for the tests: the app SDK's fake gateway
  * (`@skaile/workspaces/app-sdk/testing`) behind the iframe handshake the host
  * answers with a url and a fresh single-use token. The gateway is the SDK's;
- * only the handshake, which the fake gateway does not play, is here.
+ * only the handshake, which the fake gateway does not play, is here. Agent
+ * turns (`turn_request` answered by `turn_accepted` or `turn_refused`) and
+ * `user_update` are the gateway's: pass `answerTurn`, the user's
+ * `displayName` and `sessionRole` as options, and call `gateway.userUpdate()`.
  */
 import type { AppConnectionParams, AppTransport, SessionTokenProvider } from '@skaile/workspaces/app-sdk'
-import { createFakeGateway, type FakeGateway, type FakeInvokeOptions } from '@skaile/workspaces/app-sdk/testing'
+import { createFakeGateway, type FakeGateway, type FakeGatewayOptions, type FakeInvokeOptions } from '@skaile/workspaces/app-sdk/testing'
 
 export const PARENT_ORIGIN = 'https://skaile.test'
 
@@ -29,8 +32,8 @@ export interface FakeHost {
   sent(): string[]
 }
 
-export function createFakeHost(): FakeHost {
-  const gateway = createFakeGateway({ sessionId: 'session-1', userId: 'user-1' })
+export function createFakeHost(options: FakeGatewayOptions = {}): FakeHost {
+  const gateway = createFakeGateway({ sessionId: 'session-1', userId: 'user-1', ...options })
   const tokens: string[] = []
   let minted = 0
 

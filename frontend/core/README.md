@@ -69,6 +69,13 @@ void skailify.start();
 - `registerState` and `registerAction` return the function that removes the registration.
 - `subscribe(listener)` and `getSnapshot()` give the connection status, the capabilities and the
   activity log (the agent's latest calls, newest first) for a panel in the app's own UI.
+- `requestAgentTurn({ text, context })` asks the agent to act now, for a button such as "Ask Skaile":
+  Skaile starts a turn with `text` as the signed-in user's message. It resolves once the turn
+  started and rejects with an `AppTurnRefusedError` whose `reason` says why not (`not_connected`
+  standalone, `viewer`, `rate_limited` with `retryAfterMs`, `not_declared`, `timeout`, …).
+- `user` is the signed-in user while connected (`{ userId, displayName?, sessionRole? }`), also in
+  `getSnapshot().user`; `onUserChange(handler)` hears every change (a connect, a new name or role, a
+  lost connection).
 - `navigation` (option) hands the client the app's views and how to show one; the agent then gets
   `list_views` and `navigate`. `assistant` (option) places Skaile's agent button over the app, or
   leaves it out with `{ kind: "none" }`; `setAssistant` changes it later.
@@ -104,7 +111,8 @@ app SDK's fake gateway.
 
 ## SDK version
 
-Peer `@skaile/workspaces` ^10.14.0 and `zod` ^4.4.0. CI runs the tests and the conformance checks
+Peer `@skaile/workspaces` ^10.17.0 (the first version with agent turns and the signed-in user) and
+`zod` ^4.4.0. CI runs the tests and the conformance checks
 against the lowest and the latest `@skaile/workspaces` in that range. The bundle carries the versions
 it was built with.
 
