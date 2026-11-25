@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Framework-free Skailify client: makes an app's views, state and actions agent-controllable over the Skaile app channel, with a <script>-tag bundle for apps without a bundler",
@@ -18,7 +18,9 @@
   "types": "./dist/index.d.ts",
   "unpkg": "./dist/skailify.iife.js",
   "jsdelivr": "./dist/skailify.iife.js",
-  "sideEffects": ["./dist/skailify.iife.js"],
+  "sideEffects": [
+    "./dist/skailify.iife.js"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
