@@ -532,6 +532,26 @@ test("injectRequestAgentTurn rejects with the reason when the turn is refused", 
   expect(error).toMatchObject({ reason: "rate_limited", retryAfterMs: 500 });
 });
 
+test("injectRequestAgentTurn settles inside the Angular zone, for accept and refuse", async () => {
+  const zone = new RecordingZone();
+  let refuse = false;
+  const { fixture } = await mount(
+    AskSkaileComponent,
+    (g) => [
+      { provide: NgZone, useValue: zone },
+      provideSkailify({ appId: "kanban", transport: g.transport(), reconnect: false, logger: noopLogger }),
+    ],
+    { answerTurn: () => (refuse ? { reason: "viewer" } : undefined) },
+  );
+  zone.calls.length = 0;
+  await fixture.componentInstance.ask({ text: "Go" });
+  expect(zone.calls.at(-1)).toBe("inside");
+  zone.calls.length = 0;
+  refuse = true;
+  await fixture.componentInstance.ask({ text: "Again" }).catch(() => undefined);
+  expect(zone.calls.at(-1)).toBe("inside");
+});
+
 test("injectSkailifyUser is a signal of the signed-in user that follows user_update", async () => {
   const { gateway, fixture, el } = await mount(AskSkaileComponent, undefined, { userId: "u1", displayName: "Ada", sessionRole: "Owner" });
   expect(fixture.componentInstance.user()).toEqual({ userId: "u1", displayName: "Ada", sessionRole: "Owner" });

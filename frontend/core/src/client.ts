@@ -560,7 +560,7 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     sync();
     flushWire();
     reportIfChanged(true);
-    // Registered before onSessionChange: the SDK sets the user with the session, so the status and the user agree.
+    const current = app;
     app.onUserChange((next) => {
       user = next;
       emit();
@@ -573,13 +573,15 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       }
     });
     app.onSessionChange((session: AppSession | null) => {
+      // The SDK tells session listeners before user listeners: take the user now, so no snapshot pairs a status with a stale user.
+      user = current.user;
       if (session) {
         // the SDK replays the last report and phase on a bind; they are kept current while disconnected
         setStatus({ state: "connected", sessionId: session.sessionId, userId: session.userId });
         log({ direction: "out", label: "connected", detail: `session ${session.sessionId}` });
       } else if (!closed) {
-        log({ direction: "out", label: "disconnected" });
         setStatus(options.reconnect === false ? { state: "error", message: "connection lost" } : { state: "reconnecting" });
+        log({ direction: "out", label: "disconnected" });
       }
     });
     if (closed) {
@@ -719,16 +721,14 @@ export function createSkailify(options: SkailifyOptions): Skailify {
     },
     getSnapshot: () => snapshot,
     log,
-    async requestAgentTurn(request) {
-      if (!app) throw new AppTurnRefusedError("not_connected");
-      try {
-        await app.requestAgentTurn(request);
-        log({ direction: "out", label: "agent turn", detail: summarize(request.text) });
-      } catch (error) {
-        const detail = error instanceof AppTurnRefusedError ? error.reason : describe(error);
-        log({ direction: "out", label: "agent turn refused", detail, error: true });
-        throw error;
-      }
+    requestAgentTurn(request) {
+      // The answer arrives outside the zone; settle inside it so the caller's `.then` and `.catch` reach change detection.
+      return new Promise<void>((resolve, reject) => {
+        requestTurn(request).then(
+          () => zone.inside(resolve),
+          (error: unknown) => zone.inside(() => reject(error)),
+        );
+      });
     },
     get user() {
       return user;
@@ -740,6 +740,18 @@ export function createSkailify(options: SkailifyOptions): Skailify {
       };
     },
   };
+
+  async function requestTurn(request: AppTurnRequest): Promise<void> {
+    try {
+      if (!app) throw new AppTurnRefusedError("not_connected");
+      await app.requestAgentTurn(request);
+      log({ direction: "out", label: "agent turn", detail: summarize(request.text) });
+    } catch (error) {
+      const detail = error instanceof AppTurnRefusedError ? error.reason : describe(error);
+      log({ direction: "out", label: "agent turn refused", detail, error: true });
+      throw error;
+    }
+  }
 
   generic.push(...genericCapabilities(handle, options.navigation));
   sync();

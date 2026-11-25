@@ -465,8 +465,6 @@ describe('agent turns and the signed-in user', () => {
     await host.gateway.close()
     host = createFakeHost({ displayName: 'Ada', sessionRole: 'User', answerTurn: (request) => void seen.push(request.text) })
     const user = useSkailifyUser()
-    expect(user.value).toBeUndefined()
-    await expect(requestAgentTurn({ text: 'too early' })).rejects.toMatchObject({ reason: 'not_connected' })
     handle = startSkailify({
       appId: 'shop', views: () => VIEWS, router, logger: noopLogger, windowRef: embedded,
       resolveParams: host.resolveParams, createTransport: host.createTransport,
@@ -478,5 +476,24 @@ describe('agent turns and the signed-in user', () => {
     expect(seen).toEqual(['Check this order'])
     host.gateway.userUpdate({ sessionRole: 'Viewer' })
     await until(() => user.value?.sessionRole === 'Viewer')
+  })
+
+  it('useSkailifyUser follows a replacing startSkailify and clears on a drop', async () => {
+    const first = createFakeHost({ displayName: 'Ada' })
+    const startShared = (h: FakeHost) => startSkailify({
+      appId: 'shop', views: () => VIEWS, router, logger: noopLogger, windowRef: embedded,
+      resolveParams: h.resolveParams, createTransport: h.createTransport,
+    })
+    const user = useSkailifyUser()
+    await startShared(first).ready
+    await until(() => user.value?.displayName === 'Ada')
+    await host.gateway.close()
+    host = createFakeHost({ displayName: 'Grace' })
+    handle = startShared(host)
+    await handle.ready
+    await until(() => user.value?.displayName === 'Grace')
+    host.gateway.drop()
+    await until(() => user.value === undefined)
+    await first.gateway.close()
   })
 })

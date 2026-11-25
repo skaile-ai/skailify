@@ -587,8 +587,25 @@ test("standalone, requestAgentTurn rejects with not_connected and the user is un
   await client.start();
   const error = await client.requestAgentTurn({ text: "Hi" }).catch((e: unknown) => e);
   expect(error).toMatchObject({ reason: "not_connected" });
+  expect(client.getSnapshot().activity[0]).toMatchObject({ label: "agent turn refused", detail: "not_connected", error: true });
   expect(client.user).toBeUndefined();
   expect(client.getSnapshot().user).toBeUndefined();
+});
+
+test("no snapshot pairs the connection status with a stale user, on connect or on a drop", async () => {
+  const g = createFakeGateway({ userId: "u1", displayName: "Ada" });
+  const pairs: [string, string | undefined][] = [];
+  client = createSkailify({ appId: "test", transport: g.transport(), reconnect: false, logger: noopLogger });
+  gateway = g;
+  client.subscribe(() => {
+    const { status, user } = client!.getSnapshot();
+    pairs.push([status.state, user?.userId]);
+  });
+  await client.start();
+  g.drop();
+  await until(() => client?.getSnapshot().status.state === "error");
+  expect(pairs.filter(([state, userId]) => (state === "connected") !== (userId === "u1"))).toEqual([]);
+  expect(pairs.map(([state]) => state)).toContain("connected");
 });
 
 test("the user comes from the handshake, follows user_update, and is cleared when the connection drops", async () => {
