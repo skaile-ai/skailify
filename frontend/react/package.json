@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-react",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Skailify adapter for React apps: makes their views, state and actions agent-controllable over the Skaile app channel",
@@ -42,7 +42,7 @@
     "type-check": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@skaile/skailify-core": "^0.1.0"
+    "@skaile/skailify-core": "^0.2.0"
   },
   "peerDependencies": {
     "@skaile/workspaces": "^10.17.0",

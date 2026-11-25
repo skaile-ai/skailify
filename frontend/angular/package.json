@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-angular",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Skailify adapter for Angular apps: makes their views, state, NgRx store and actions agent-controllable over the Skaile app channel",
@@ -57,7 +57,7 @@
     "type-check": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@skaile/skailify-core": "^0.1.0"
+    "@skaile/skailify-core": "^0.2.0"
   },
   "peerDependencies": {
     "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0",

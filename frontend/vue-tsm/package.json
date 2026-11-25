@@ -1,6 +1,6 @@
 {
   "name": "@skaile/skailify-vue-tsm",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "license": "Apache-2.0",
   "description": "Skailify adapter for Vue 3 apps on the tsm module runtime: makes their views, lists and UIModel forms agent-controllable over the Skaile app channel",
@@ -59,7 +59,7 @@
     "@eclipse-daanse/tsm": "0.1.0-next.1",
     "@emfts/core": "0.3.0-next.4",
     "@emfts/uimodel-composer": "0.0.2-next.1",
-    "@skaile/skailify-core": "^0.1.0",
+    "@skaile/skailify-core": "^0.2.0",
     "@skaile/workspaces": "10.17.0",
     "@types/bun": "^1.3.12",
     "publint": "0.3.25",
