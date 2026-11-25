@@ -37,12 +37,15 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
   after approval. Queries and harmless view changes (opening, filtering, navigating) need none.
 - Actions exist only while the app is open in the session and the component that registers them is
   mounted.
+- **Handing work to the agent.** `useRequestAgentTurn()` returns the function that starts an agent
+  turn as the signed-in user's message; it rejects with an `AppTurnRefusedError` (`reason`) when
+  Skaile refuses or does not answer. `useSkailifyUser()` is the signed-in user.
 
 ## Prerequisites
 
 - React 18.3 or 19, and a bundler that resolves TypeScript sources from `node_modules` (Vite, Next.js,
   webpack with a TypeScript loader)
-- `@skaile/workspaces` `^10.14.0` (the app SDK, `@skaile/workspaces/app-sdk`)
+- `@skaile/workspaces` `^10.17.0` (the app SDK, `@skaile/workspaces/app-sdk`)
 - `zod` `^4.4.0`: major 4, because the SDK turns your schemas into JSON Schema with it
 - The app's id: the `id` of its entry in the workspace's `skaile.preview.json`
 

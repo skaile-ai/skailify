@@ -24,6 +24,8 @@ import type * as z from "zod";
 import {
   type ActivityEntry,
   type AgentAction,
+  type AppTurnRequest,
+  type AppUser,
   type CapabilityInfo,
   type ConnectionStatus,
   createSkailify,
@@ -130,6 +132,21 @@ export function injectSkailifyActivity(options?: InjectOptions): Signal<readonly
 /** The capabilities the agent sees now, with their full names. */
 export function injectSkailifyCapabilities(options?: InjectOptions): Signal<readonly CapabilityInfo[]> {
   return snapshotSignal(injectSkailifyCapabilities, (s) => s.capabilities, options);
+}
+
+/** The signed-in user while connected, as a signal; undefined standalone or disconnected. */
+export function injectSkailifyUser(options?: InjectOptions): Signal<AppUser | undefined> {
+  return snapshotSignal(injectSkailifyUser, (s) => s.user, options);
+}
+
+/**
+ * The function that asks the agent to act now, for a button such as "Ask Skaile": Skaile starts a turn with the text
+ * as the signed-in user's message. It resolves once the turn started and rejects with an `AppTurnRefusedError`
+ * naming why not (`not_connected`, `viewer`, `rate_limited`, …).
+ */
+export function injectRequestAgentTurn(options?: InjectOptions): (request: AppTurnRequest) => Promise<void> {
+  const { client } = context(injectRequestAgentTurn, options);
+  return (request) => client.requestAgentTurn(request);
 }
 
 /**

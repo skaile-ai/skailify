@@ -12,16 +12,26 @@
  * The Router and NgRx bridges are in `@skaile/skailify-angular/router`, `/ngrx` and `/ngrx-signals`.
  */
 export { z } from "zod";
-export type { AppAssistantCorner, AppAssistantPresentation } from "@skaile/workspaces/app-sdk";
+export type {
+  AppAssistantCorner,
+  AppAssistantPresentation,
+  AppSessionRole,
+  AppTurnFailureReason,
+  AppTurnRequest,
+  AppUser,
+} from "@skaile/workspaces/app-sdk";
+export { AppTurnRefusedError } from "@skaile/workspaces/app-sdk";
 export {
   type InjectOptions,
   injectAgentAction,
   injectAgentState,
   injectAgentView,
+  injectRequestAgentTurn,
   injectSkailify,
   injectSkailifyActivity,
   injectSkailifyCapabilities,
   injectSkailifyStatus,
+  injectSkailifyUser,
   type ProvideSkailifyOptions,
   provideSkailify,
   SKAILIFY,

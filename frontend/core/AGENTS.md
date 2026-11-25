@@ -37,11 +37,14 @@ Read "What works today" in [Getting started](../../docs/getting-started.md) firs
 - **Writes and consent.** Every action that changes data must be declared with
   `requiresApproval: true`. Queries and harmless view changes need none.
 - Actions exist only while the page is open in the session.
+- **Handing work to the agent.** `skailify.requestAgentTurn({ text, context })` starts an agent turn
+  as the signed-in user's message; it rejects with an `AppTurnRefusedError` (`reason`) when Skaile
+  refuses or does not answer. `skailify.user` is the signed-in user; `onUserChange` hears changes.
 
 ## Prerequisites
 
 - The app's id: the `id` of its entry in the workspace's `skaile.preview.json`.
-- With a bundler: `@skaile/workspaces` `^10.14.0` and `zod` `^4.4.0` as well.
+- With a bundler: `@skaile/workspaces` `^10.17.0` and `zod` `^4.4.0` as well.
 - Without one: nothing else; the bundle carries both.
 
 ## Step 1: load the client

@@ -5,9 +5,18 @@
  * component tells the agent what it shows and what it can do, for as long as
  * it is mounted.
  */
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as z from "zod";
-import type { ActivityEntry, AgentAction, CapabilityInfo, ConnectionStatus, Skailify, ViewRegistration } from "@skaile/skailify-core";
+import type {
+  ActivityEntry,
+  AgentAction,
+  AppTurnRequest,
+  AppUser,
+  CapabilityInfo,
+  ConnectionStatus,
+  Skailify,
+  ViewRegistration,
+} from "@skaile/skailify-core";
 
 const SkailifyContext = createContext<Skailify | null>(null);
 
@@ -42,6 +51,22 @@ export function useSkailifyActivity(): readonly ActivityEntry[] {
 export function useSkailifyCapabilities(): readonly CapabilityInfo[] {
   const client = useSkailify();
   return useSyncExternalStore(client.subscribe, () => client.getSnapshot().capabilities);
+}
+
+/** The signed-in user while connected, re-rendering on a change of name or role; undefined standalone or disconnected. */
+export function useSkailifyUser(): AppUser | undefined {
+  const client = useSkailify();
+  return useSyncExternalStore(client.subscribe, () => client.getSnapshot().user);
+}
+
+/**
+ * The function that asks the agent to act now, for a button such as "Ask Skaile": Skaile starts a turn with the text
+ * as the signed-in user's message. It resolves once the turn started and rejects with an `AppTurnRefusedError`
+ * naming why not (`not_connected`, `viewer`, `rate_limited`, …). Stable across renders.
+ */
+export function useRequestAgentTurn(): (request: AppTurnRequest) => Promise<void> {
+  const client = useSkailify();
+  return useCallback((request: AppTurnRequest) => client.requestAgentTurn(request), [client]);
 }
 
 const schemaKeys = new WeakMap<z.ZodTypeAny, string>();

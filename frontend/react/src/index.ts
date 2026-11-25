@@ -12,7 +12,15 @@
  * ```
  */
 export { z } from "zod";
-export type { AppAssistantCorner, AppAssistantPresentation } from "@skaile/workspaces/app-sdk";
+export type {
+  AppAssistantCorner,
+  AppAssistantPresentation,
+  AppSessionRole,
+  AppTurnFailureReason,
+  AppTurnRequest,
+  AppUser,
+} from "@skaile/workspaces/app-sdk";
+export { AppTurnRefusedError } from "@skaile/workspaces/app-sdk";
 export {
   type ActivityEntry,
   type AgentAction,
@@ -36,8 +44,10 @@ export {
   useAgentAction,
   useAgentState,
   useAgentView,
+  useRequestAgentTurn,
   useSkailify,
   useSkailifyActivity,
   useSkailifyCapabilities,
   useSkailifyStatus,
+  useSkailifyUser,
 } from "./react.tsx";

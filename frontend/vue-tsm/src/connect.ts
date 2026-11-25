@@ -12,6 +12,7 @@
  * its own, the app has neither, and nothing here runs.
  */
 import {
+  AppTurnRefusedError,
   consoleLogger,
   createSkaileApp,
   createWebSocketAppTransport,
@@ -22,6 +23,8 @@ import {
   type AppLogger,
   type AppSession,
   type AppTransport,
+  type AppTurnRequest,
+  type AppUser,
   type SessionTokenProvider,
   type SkaileApp,
 } from '@skaile/workspaces/app-sdk'
@@ -68,8 +71,20 @@ export interface SkailifyHandle {
   ready: Promise<void>
   /** Changes how Skaile shows its agent button over the app (see {@link SkailifyOptions.assistant}); standalone a no-op */
   setAssistant(presentation: AppAssistantPresentation): void
+  /**
+   * Asks the agent to act now: Skaile starts a turn with `text` as the signed-in user's message, marked as sent
+   * through the app. Resolves once the turn started; rejects with an `AppTurnRefusedError` naming the reason
+   * (`viewer`, `rate_limited` with `retryAfterMs`, `not_connected`, `timeout`, …). Standalone: `not_connected`.
+   */
+  requestAgentTurn(request: AppTurnRequest): Promise<void>
+  /** The signed-in user while connected; undefined standalone, before the connection and while reconnecting */
+  readonly user: AppUser | undefined
+  /** Calls `handler` whenever {@link user} changes; returns the unsubscribe */
+  onUserChange(handler: (user: AppUser | undefined) => void): () => void
   close(): Promise<void>
 }
+
+const notConnected = () => Promise.reject(new AppTurnRefusedError('not_connected'))
 
 // From the core client, bundled into this package's build: an app's import map needs no entry for the core.
 export { skaileParentOrigin }
@@ -81,7 +96,16 @@ export function startSkailify(options: SkailifyOptions): SkailifyHandle {
 
   if (!parentOrigin) {
     status({ state: 'standalone' })
-    return { bridge, app: null, ready: Promise.resolve(), setAssistant: () => {}, close: async () => {} }
+    return {
+      bridge,
+      app: null,
+      ready: Promise.resolve(),
+      setAssistant: () => {},
+      requestAgentTurn: notConnected,
+      user: undefined,
+      onUserChange: () => () => {},
+      close: async () => {},
+    }
   }
 
   const logger = options.logger ?? consoleLogger
@@ -111,6 +135,7 @@ export function startSkailify(options: SkailifyOptions): SkailifyHandle {
 
   let closed = false
   let app: SkaileApp | null = null
+  const userListeners = new Set<(user: AppUser | undefined) => void>()
   const handle: SkailifyHandle = {
     bridge,
     app: null,
@@ -118,6 +143,16 @@ export function startSkailify(options: SkailifyOptions): SkailifyHandle {
     setAssistant(presentation) {
       assistant = presentation
       if (!closed) postAssistant(presentation)
+    },
+    requestAgentTurn: (request) => (app ? app.requestAgentTurn(request) : notConnected()),
+    get user() {
+      return app?.user
+    },
+    onUserChange(handler) {
+      userListeners.add(handler)
+      return () => {
+        userListeners.delete(handler)
+      }
     },
     close: async () => {},
   }
@@ -253,6 +288,15 @@ export function startSkailify(options: SkailifyOptions): SkailifyHandle {
     app = createSkaileApp({ appId: options.appId, transport, logger })
     handle.app = app
     sync()
+    app.onUserChange((user) => {
+      for (const handler of [...userListeners]) {
+        try {
+          handler(user)
+        } catch (error) {
+          logger.error('skailify: a user change handler threw', { message: error instanceof Error ? error.message : String(error) })
+        }
+      }
+    })
     app.onSessionChange((session: AppSession | null) => {
       status(session ? { state: 'connected', sessionId: session.sessionId, userId: session.userId } : { state: 'reconnecting' })
     })

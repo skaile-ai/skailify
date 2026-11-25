@@ -2,11 +2,20 @@
 
 import { afterEach, expect, test } from "bun:test";
 import { noopLogger } from "@skaile/workspaces/app-sdk";
-import { createFakeGateway, type FakeGateway } from "@skaile/workspaces/app-sdk/testing";
+import { createFakeGateway, type FakeGateway, type FakeGatewayOptions } from "@skaile/workspaces/app-sdk/testing";
 import { StrictMode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import * as z from "zod";
-import { createSkailify, type Skailify, SkailifyProvider, useAgentAction, useAgentView } from "../../src/index.ts";
+import {
+  AppTurnRefusedError,
+  createSkailify,
+  type Skailify,
+  SkailifyProvider,
+  useAgentAction,
+  useAgentView,
+  useRequestAgentTurn,
+  useSkailifyUser,
+} from "../../src/index.ts";
 import { createBoardStore } from "../kanban/board-store.ts";
 import { KanbanApp } from "../kanban/KanbanApp.tsx";
 
@@ -23,8 +32,11 @@ afterEach(async () => {
   root = client = gateway = container = undefined;
 });
 
-async function mount(ui: React.ReactNode): Promise<{ gateway: FakeGateway; client: Skailify; container: HTMLElement }> {
-  gateway = createFakeGateway();
+async function mount(
+  ui: React.ReactNode,
+  gatewayOptions: FakeGatewayOptions = {},
+): Promise<{ gateway: FakeGateway; client: Skailify; container: HTMLElement }> {
+  gateway = createFakeGateway(gatewayOptions);
   client = createSkailify({ appId: "kanban", transport: gateway.transport(), reconnect: false, logger: noopLogger });
   container = document.createElement("div");
   document.body.append(container);
@@ -195,4 +207,47 @@ test("view state that is not JSON-serialisable does not break rendering", async 
   const { container } = await mount(<Unserialisable />);
   await new Promise((r) => setTimeout(r, 20));
   expect(container.textContent).toBe("still rendered");
+});
+
+async function until(predicate: () => boolean, timeoutMs = 1000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error("condition not met in time");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+let askAgent: ReturnType<typeof useRequestAgentTurn> | undefined;
+afterEach(() => {
+  askAgent = undefined;
+});
+function AskSkaile() {
+  const user = useSkailifyUser();
+  askAgent = useRequestAgentTurn();
+  return <p className="user">{user ? `${user.displayName} (${user.sessionRole})` : "nobody"}</p>;
+}
+
+test("useRequestAgentTurn hands work to the agent and resolves when the turn starts", async () => {
+  const seen: { text: string; context?: unknown }[] = [];
+  await mount(<AskSkaile />, { answerTurn: (request) => void seen.push(request) });
+  await until(() => askAgent !== undefined);
+  await askAgent!({ text: "Review this card", context: { cardId: "card-1" } });
+  expect(seen).toMatchObject([{ text: "Review this card", context: { cardId: "card-1" } }]);
+});
+
+test("useRequestAgentTurn rejects with the reason when the turn is refused", async () => {
+  await mount(<AskSkaile />, { answerTurn: () => ({ reason: "viewer" }) });
+  await until(() => askAgent !== undefined);
+  const error = await askAgent!({ text: "Review this card" }).catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(AppTurnRefusedError);
+  expect(error).toMatchObject({ reason: "viewer" });
+});
+
+test("useSkailifyUser renders the signed-in user and re-renders on user_update", async () => {
+  const { gateway, container } = await mount(<AskSkaile />, { userId: "u1", displayName: "Ada", sessionRole: "Owner" });
+  await until(() => container.querySelector(".user")?.textContent === "Ada (Owner)");
+  gateway.userUpdate({ displayName: "Ada L.", sessionRole: "User" });
+  await until(() => container.querySelector(".user")?.textContent === "Ada L. (User)");
+  gateway.drop();
+  await until(() => container.querySelector(".user")?.textContent === "nobody");
 });

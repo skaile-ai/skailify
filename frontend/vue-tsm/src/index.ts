@@ -13,14 +13,16 @@
  * A shared library: served once through the app's import map, so the
  * shell and every view bundle share one registry.
  */
-import { getCurrentScope, onScopeDispose } from 'vue'
+import { computed, getCurrentScope, onScopeDispose, shallowRef, type ComputedRef } from 'vue'
+import { AppTurnRefusedError, type AppTurnRequest, type AppUser } from '@skaile/workspaces/app-sdk'
 import * as z from 'zod'
 import type { Bridge, WaitOptions } from './bridge.js'
 import { startSkailify as start, type SkailifyHandle, type SkailifyOptions } from './connect.js'
 import { registry, type AgentAction, type FormRegistration, type ListRegistration } from './registry.js'
 
 export { z }
-export type { AppAssistantCorner, AppAssistantPresentation } from '@skaile/workspaces/app-sdk'
+export type { AppAssistantCorner, AppAssistantPresentation, AppSessionRole, AppTurnFailureReason, AppTurnRequest, AppUser } from '@skaile/workspaces/app-sdk'
+export { AppTurnRefusedError } from '@skaile/workspaces/app-sdk'
 export { createBridge, defineCapability, MAX_WAIT_MS, type Bridge, type WaitOptions, type BridgeOptions, type SkailifyCapability, type FormState, type ListRow, type ListState, type ViewState } from './bridge.js'
 export { skaileParentOrigin, type ConnectionStatus, type SkailifyHandle, type SkailifyOptions } from './connect.js'
 export { defaultLabel, idOf, missingRequired, readFields, setFields, widgetsOf, type FieldError, type FieldInfo, type Labeler, type ReferenceResolver, type SetFieldsResult, type ValueWriter } from './forms.js'
@@ -29,12 +31,35 @@ export { AgentRegistry, registry, type AgentAction, type FormRegistration, type 
 export { tsmViewSource, type TsmModuleContext, type TsmServiceReference, type TsmViewContract, type ViewDescriptor, type ViewSource } from './views.js'
 
 let current: SkailifyHandle | null = null
+let stopUser: () => void = () => {}
+const user = shallowRef<AppUser | undefined>(undefined)
 
 /** Starts Skailify for the page (once; a second call replaces the first). Returns the handle; `close()` tears it down. */
 export function startSkailify(options: SkailifyOptions): SkailifyHandle {
   void current?.close()
-  current = start(options)
-  return current
+  stopUser()
+  const handle = start(options)
+  current = handle
+  user.value = handle.user
+  stopUser = handle.onUserChange((next) => {
+    user.value = next
+  })
+  return handle
+}
+
+/**
+ * Asks the agent to act now, for a button such as "Ask Skaile": Skaile starts a turn with the text as the signed-in
+ * user's message. Resolves once the turn started; rejects with an `AppTurnRefusedError` naming why not
+ * (`not_connected` before {@link startSkailify} or standalone, `viewer`, `rate_limited`, …).
+ */
+export function requestAgentTurn(request: AppTurnRequest): Promise<void> {
+  if (!current) return Promise.reject(new AppTurnRefusedError('not_connected'))
+  return current.requestAgentTurn(request)
+}
+
+/** The signed-in user while connected, as a ref a template or a `watch` reacts to; undefined standalone or disconnected. */
+export function useSkailifyUser(): ComputedRef<AppUser | undefined> {
+  return computed(() => user.value)
 }
 
 /** The running bridge, for actions that navigate; null before {@link startSkailify}. */

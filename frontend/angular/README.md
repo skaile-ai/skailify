@@ -127,6 +127,29 @@ For a panel in the app's own UI: `injectSkailifyStatus()`, `injectSkailifyCapabi
 `injectSkailifyActivity()` return signals (the activity is the agent's latest calls and the
 connection events, newest first).
 
+### Handing work to the agent, and the signed-in user
+
+```ts
+@Component({
+  selector: "app-ask",
+  template: `<button [disabled]="!user() || user()?.sessionRole === 'Viewer'" (click)="ask()">Ask Skaile</button>`,
+})
+export class AskSkaileComponent {
+  readonly cardId = input.required<string>();
+  readonly user = injectSkailifyUser(); // Signal<{ userId, displayName?, sessionRole? } | undefined>
+  private readonly requestAgentTurn = injectRequestAgentTurn();
+  ask() {
+    this.requestAgentTurn({ text: "Review this card", context: { cardId: this.cardId() } }).catch(showError);
+  }
+}
+```
+
+`requestAgentTurn` starts a turn with the text as the signed-in user's message, marked as sent
+through the app. It resolves once the turn started and rejects with an `AppTurnRefusedError` whose
+`reason` says why not (`not_connected`, `viewer`, `rate_limited` with `retryAfterMs`, `not_declared`,
+`timeout`, …). The user signal follows a change of name or role, and is `undefined` standalone or
+while the connection is down.
+
 ### The agent button (optional)
 
 When the app fills the screen in Skaile (on a phone, maximised, or with the chat hidden), Skaile
@@ -218,8 +241,7 @@ The tests drive it through the app SDK's fake gateway.
 ## Versions
 
 - Peer `@angular/core` 20, 21 or 22, and NgRx 20 to 22 for the NgRx entry points.
-- Peer `@skaile/workspaces` ^10.14.0, the first version that sends the agent button hints
-  (`assistant`).
+- Peer `@skaile/workspaces` ^10.17.0, the first version with agent turns and the signed-in user.
 - CI runs the tests and the conformance checks with Angular 22 against the lowest and the latest
   version in that range.
 - Angular 20.0 with NgRx 20.0 and SDK 10.4.0 were tested by hand.

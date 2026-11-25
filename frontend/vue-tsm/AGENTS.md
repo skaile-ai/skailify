@@ -30,11 +30,15 @@ It connects only when the app runs embedded in Skaile as a `protocol` preview ap
 whose URL carries `skaileParentOrigin`). Opened on its own, the app does not connect and every
 registration is a no-op in cost.
 
+To hand work to the agent (an "Ask Skaile" button), call `requestAgentTurn({ text, context })`: it
+starts an agent turn as the signed-in user's message and rejects with an `AppTurnRefusedError`
+(`reason`) when Skaile refuses or does not answer. `useSkailifyUser()` is the signed-in user.
+
 ## Prerequisites
 
 - Node.js 22 or newer (or Bun 1.3).
 - Vue 3.5+, vue-router 5, zod 4.
-- `@skaile/workspaces` ^10.14.0 (the contract: `@skaile/workspaces/app-sdk`).
+- `@skaile/workspaces` ^10.17.0 (the contract: `@skaile/workspaces/app-sdk`).
 - Forms built from UIModels with `@emfts/core` and `@emfts/uimodel-composer`.
 - Optional: the tsm module runtime (`@eclipse-daanse/tsm`), if the views come from tsm view
   services. Without it, pass your own view list.
