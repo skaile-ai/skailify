@@ -12,15 +12,15 @@
  * The Router and NgRx bridges are in `@skaile/skailify-angular/router`, `/ngrx` and `/ngrx-signals`.
  */
 export { z } from "zod";
-export type {
-  AppAssistantCorner,
-  AppAssistantPresentation,
-  AppSessionRole,
-  AppTurnFailureReason,
-  AppTurnRequest,
-  AppUser,
-} from "@skaile/workspaces/app-sdk";
-export { AppTurnRefusedError } from "@skaile/workspaces/app-sdk";
+export type { AppAssistantCorner, AppAssistantPresentation } from "@skaile/workspaces/app-sdk";
+// From the core, not the SDK: the error class must be the one the core client's SDK throws, for `instanceof`.
+export {
+  AppTurnRefusedError,
+  type AppSessionRole,
+  type AppTurnFailureReason,
+  type AppTurnRequest,
+  type AppUser,
+} from "@skaile/skailify-core";
 export {
   type InjectOptions,
   injectAgentAction,
